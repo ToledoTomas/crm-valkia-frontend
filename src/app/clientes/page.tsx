@@ -1,10 +1,14 @@
+import Link from "next/link";
 import React from "react";
 
 const pageClientes = () => {
   return (
     <div className="m-12 flex flex-row justify-between items-center">
       <h2 className="text-2xl mb-4">Clientes</h2>
-      <button className="mt-2 p-3 rounded-md flex flex-row items-center gap-2 bg-sky-200 cursor-pointer hover:bg-sky-300">
+      <Link
+        href="/productos/agregar-productos"
+        className="mt-2 p-3 rounded-md flex flex-row items-center gap-2 bg-sky-200 cursor-pointer hover:bg-sky-300"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -22,7 +26,7 @@ const pageClientes = () => {
           <path d="M5 12l14 0" />
         </svg>
         Agregar Cliente
-      </button>
+      </Link>
     </div>
   );
 };
