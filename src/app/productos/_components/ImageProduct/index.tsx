@@ -11,7 +11,7 @@ const ImageProduct = () => {
         width={600}
         height={600}
       />
-      <button className="absolute bottom-32 right-7 mt-2 p-2 rounded-sm bg-sky-200 cursor-pointer hover:bg-sky-300">
+      <button className="absolute bottom-36 right-7 mt-2 p-2 rounded-sm bg-sky-200 cursor-pointer hover:bg-sky-300">
         Cambiar imagen
       </button>
     </div>

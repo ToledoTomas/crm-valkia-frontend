@@ -14,8 +14,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <Navbar />
-      <body>{children}</body>
+      <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+      </head>
+      <body>
+        <Navbar />
+        {children}
+      </body>
     </html>
   );
 }

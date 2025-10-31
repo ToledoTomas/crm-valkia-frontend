@@ -1,85 +1,68 @@
-async function filterDataOnServer(query: string) {
-  const data = [
-    {
-      id: 1,
-      name: "Producto 1",
-      description: "Descripción del producto 1",
-      price: 100,
-      stock: 50,
-      size: ["XS", "S", "M", "L", "XL"],
-      color: ["Rojo", "Azul", "Verde"],
-      category: "Categoría 1",
-    },
-    {
-      id: 2,
-      name: "Producto 2",
-      description: "Descripción del producto 2",
-      price: 200,
-      stock: 30,
-      size: ["XS", "S", "M", "L", "XL"],
-      color: ["Rojo", "Azul", "Verde"],
-      category: "Categoría 2",
-    },
-    {
-      id: 3,
-      name: "Producto 3",
-      description: "Descripción del producto 3",
-      price: 150,
-      stock: 20,
-      size: ["XS", "S", "M", "L", "XL"],
-      color: ["Rojo", "Azul", "Verde"],
-      category: "Categoría 3",
-    },
-  ];
-  if (!query) {
-    return data;
-  }
+import React, { useEffect, useState } from "react";
+import { getProducts } from "../../api/index.js";
 
-  return data.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  size: string[];
+  color: string[];
 }
 
-export default async function Tables({
-  searchParams,
-}: {
-  searchParams?: { query?: string };
-}) {
-  const query = searchParams?.query || "";
-  const filteredProducts = await filterDataOnServer(query);
+export default function Tables() {
+  const classTh =
+    "px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase ";
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchProducts = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const res = await getProducts();
+      setProducts(res);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error fetching products");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   return (
     <div className="overflow-x-auto">
+      {isLoading && (
+        <div className="text-center py-4">Cargando productos...</div>
+      )}
+      {error && <div className="text-center py-4 text-red-600">{error}</div>}
+      {!isLoading && !error && products.length === 0 && (
+        <div className="text-center py-4">No hay productos disponibles</div>
+      )}
       <table className="min-w-full">
         <thead>
           <tr>
-            <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase ">
-              ID
-            </th>
-            <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase ">
-              Nombre
-            </th>
-            <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Categoría
-            </th>
-            <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Precio
-            </th>
-            <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Stock
-            </th>
-            <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Tamaño
-            </th>
-            <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase ">
-              Color
-            </th>
+            <th className={classTh}>ID</th>
+            <th className={classTh}>Nombre</th>
+            <th className={classTh}>Descripción</th>
+            <th className={classTh}>Precio</th>
+            <th className={classTh}>Stock</th>
+            <th className={classTh}>Tamaño</th>
+            <th className={classTh}>Color</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {filteredProducts.map((item) => (
+          {products.map((item: Product) => (
             <tr key={item.id} className="hover:bg-gray-100">
               <td className="px-5 py-4">{item.id}</td>
               <td className="px-5 py-4">{item.name}</td>
-              <td className="px-5 py-4">{item.category}</td>
+              <td className="px-5 py-4">{item.description}</td>
               <td className="px-5 py-4">$ {item.price}</td>
               <td className="px-5 py-4">{item.stock}</td>
               <td className="px-5 py-4">{item.size.join(", ")}</td>
