@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Tables from "./_components/Tables";
-import Search from "../(components)/Search";
+import Search from "../../(components)/Search";
 
 const pageProductos = () => {
   return (

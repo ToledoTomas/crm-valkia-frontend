@@ -5,6 +5,7 @@ interface Product {
   id: number;
   name: string;
   description: string;
+  cost: number;
   price: number;
   stock: number;
   size: string[];
@@ -51,6 +52,7 @@ export default function Tables() {
             <th className={classTh}>ID</th>
             <th className={classTh}>Nombre</th>
             <th className={classTh}>Descripción</th>
+            <th className={classTh}>Costo</th>
             <th className={classTh}>Precio</th>
             <th className={classTh}>Stock</th>
             <th className={classTh}>Tamaño</th>
@@ -63,6 +65,7 @@ export default function Tables() {
               <td className="px-5 py-4">{item.id}</td>
               <td className="px-5 py-4">{item.name}</td>
               <td className="px-5 py-4">{item.description}</td>
+              <td className="px-5 py-4">$ {item.cost}</td>
               <td className="px-5 py-4">$ {item.price}</td>
               <td className="px-5 py-4">{item.stock}</td>
               <td className="px-5 py-4">{item.size.join(", ")}</td>

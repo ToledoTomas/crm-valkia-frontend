@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Navbar from "./(components)/Navbar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,10 +18,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
       </head>
-      <body>
-        <Navbar />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
