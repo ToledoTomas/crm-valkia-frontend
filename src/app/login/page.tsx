@@ -20,14 +20,19 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await login(user);
+      const res = await login(user);
+      const token =
+        res.token || res.accessToken || res.access_token || res["access-token"];
+      if (token) {
+        localStorage.setItem("token", token);
+      } else {
+        console.error("No token found in response");
+      }
       router.push("/dashboard");
     } catch (err: any) {
       console.error("Error logging in:", err);
-      // Display the error message from the API or a default message
       setError(
-        err.message ||
-          "Error al iniciar sesión. Por favor verifique sus credenciales."
+        "Error al iniciar sesión. Por favor verifique sus credenciales."
       );
     } finally {
       setLoading(false);
@@ -36,6 +41,7 @@ const Login = () => {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">
+      <h1 className="text-2xl font-bold mb-4">Inicio de Sesión</h1>
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 w-full max-w-xs"
@@ -66,7 +72,7 @@ const Login = () => {
             loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          {loading ? "Cargando..." : "Iniciar Sesión"}
+          {loading ? "Cargando..." : "Entrar"}
         </button>
       </form>
     </div>

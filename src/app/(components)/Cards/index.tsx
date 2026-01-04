@@ -1,3 +1,5 @@
+"use client";
+
 import CardSmall from "../CardSmall";
 
 const Cards = () => {

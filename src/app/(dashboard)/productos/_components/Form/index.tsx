@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { createProduct } from "../../api";
+import MultiSelect from "../MultiSelect";
 
 const Form = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
+    cost: "",
     stock: "",
     size: [] as string[],
     color: [] as string[],
@@ -18,13 +20,15 @@ const Form = () => {
     >
   ) => {
     const { name, value } = e.target;
-    if (name === "size" || name === "color") {
-      const options = (e.target as HTMLSelectElement).selectedOptions;
-      const values = Array.from(options).map((option) => option.value);
-      setFormData((prev) => ({ ...prev, [name]: values }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSizeChange = (selected: string[]) => {
+    setFormData({ ...formData, size: selected });
+  };
+
+  const handleColorChange = (selected: string[]) => {
+    setFormData({ ...formData, color: selected });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -35,16 +39,17 @@ const Form = () => {
       const productData = {
         ...formData,
         price: Number(formData.price),
+        cost: Number(formData.cost),
         stock: Number(formData.stock),
       };
 
       await createProduct(productData);
-      // Limpiar el formulario después del éxito
       setFormData({
         name: "",
         size: [],
         description: "",
         price: "",
+        cost: "",
         stock: "",
         color: [],
       });
@@ -70,6 +75,7 @@ const Form = () => {
             onChange={handleChange}
             className="col-span-1 bg-gray-300 rounded-md placeholder:text-gray-600 p-2"
             placeholder="Ingrese el titulo del producto"
+            required
           />
         </div>
         <div className="flex flex-col mb-4">
@@ -82,6 +88,21 @@ const Form = () => {
             onChange={handleChange}
             className="col-span-1 bg-gray-300 rounded-md placeholder:text-gray-600 p-2"
             placeholder="Ingrese el precio del producto"
+            required
+          />
+        </div>
+
+        <div className="flex flex-col mb-4">
+          <label htmlFor="cost">Costo:</label>
+          <input
+            type="number"
+            id="cost"
+            name="cost"
+            value={formData.cost}
+            onChange={handleChange}
+            className="col-span-1 bg-gray-300 rounded-md placeholder:text-gray-600 p-2"
+            placeholder="Ingrese el costo del producto"
+            required
           />
         </div>
 
@@ -94,43 +115,23 @@ const Form = () => {
             onChange={handleChange}
             className="h-24 bg-gray-300 rounded-md placeholder:text-gray-600 p-2"
             placeholder="Ingrese la descripcion del producto"
+            required
           ></textarea>
         </div>
-        <div className="flex flex-col">
-          <label htmlFor="size">Talles:</label>
-          <select
-            name="size"
-            id="size"
-            multiple
-            value={formData.size}
-            onChange={handleChange}
-            className="col-span-1 bg-gray-300 rounded-md placeholder:text-gray-600 p-2 min-h-[100px]"
-          >
-            <option value="XS">XS</option>
-            <option value="S">S</option>
-            <option value="M">M</option>
-            <option value="L">L</option>
-            <option value="XL">XL</option>
-          </select>
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="color">Colores:</label>
-          <select
-            name="color"
-            id="color"
-            multiple
-            value={formData.color}
-            onChange={handleChange}
-            className="col-span-1 bg-gray-300 rounded-md placeholder:text-gray-600 p-2 min-h-[100px]"
-          >
-            <option value="Blanco">Blanco</option>
-            <option value="Negro">Negro</option>
-            <option value="Beige">Beige</option>
-            <option value="Gris">Gris</option>
-            <option value="Verde">Verde</option>
-            <option value="Marron">Marron</option>
-          </select>
-        </div>
+
+        <MultiSelect
+          label="Talles:"
+          options={["XS", "S", "M", "L", "XL"]}
+          selected={formData.size}
+          onChange={handleSizeChange}
+        />
+
+        <MultiSelect
+          label="Colores:"
+          options={["Blanco", "Negro", "Beige", "Gris", "Verde", "Marron"]}
+          selected={formData.color}
+          onChange={handleColorChange}
+        />
         <div className="flex flex-col">
           <label htmlFor="stock">Stock:</label>
           <input
@@ -141,6 +142,7 @@ const Form = () => {
             onChange={handleChange}
             className="col-span-1 bg-gray-300 rounded-md placeholder:text-gray-600 p-2"
             placeholder="Ingrese la cantidad en stock"
+            required
           />
         </div>
         <button

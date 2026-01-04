@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getProducts } from "../../api/index.js";
+import { getProducts, deleteProductId } from "../../api/index.js";
 
 interface Product {
   id: number;
@@ -33,6 +33,16 @@ export default function Tables() {
     }
   };
 
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteProductId(id);
+      setProducts(products.filter((product) => product.id !== id));
+    } catch (err) {
+      console.error("Error deleting product:", err);
+      alert("Error al eliminar el producto");
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -57,6 +67,7 @@ export default function Tables() {
             <th className={classTh}>Stock</th>
             <th className={classTh}>Tamaño</th>
             <th className={classTh}>Color</th>
+            <th className={classTh}>Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -70,6 +81,15 @@ export default function Tables() {
               <td className="px-5 py-4">{item.stock}</td>
               <td className="px-5 py-4">{item.size.join(", ")}</td>
               <td className="px-5 py-4">{item.color.join(", ")}</td>
+              <td className="px-5 py-4">
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  className="text-red-600 hover:text-red-900 font-bold text-xl"
+                  title="Eliminar producto"
+                >
+                  X
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>

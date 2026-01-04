@@ -11,7 +11,6 @@ export const login = async (user: any) => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       if (errorData.message) {
-        // If message is array (class-validator), join it
         const message = Array.isArray(errorData.message)
           ? errorData.message.join(", ")
           : errorData.message;
