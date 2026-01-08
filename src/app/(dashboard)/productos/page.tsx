@@ -1,16 +1,81 @@
 "use client";
-
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Tables from "./_components/Tables";
+import Tables, { Product } from "./_components/Tables";
 import Search from "../../(components)/Search";
+import { getProducts, searchByName, deleteProductId } from "./api";
 
-const pageProductos = () => {
+const PageProductos = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchProducts = React.useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const res = await getProducts();
+      setProducts(res);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Error fetching products");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleSearch = React.useCallback(
+    async (term: string) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        if (term.trim() === "") {
+          await fetchProducts();
+        } else {
+          const res = await searchByName(term);
+          setProducts(res);
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Error searching products");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [fetchProducts]
+  );
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteProductId(id);
+      setProducts(products.filter((product) => product.id !== id));
+    } catch (err: unknown) {
+      console.error("Error deleting product:", err);
+      alert("Error al eliminar el producto");
+    }
+  };
+
+  const hasFetched = React.useRef(false);
+
+  useEffect(() => {
+    if (!hasFetched.current) {
+      fetchProducts();
+      hasFetched.current = true;
+    }
+  }, [fetchProducts]);
+
   return (
     <div>
       <div className="m-12 flex flex-row justify-between items-center">
         <div>
           <h2 className="text-2xl mb-4">Productos</h2>
-          <Search />
+          <Search onSearch={handleSearch} />
         </div>
         <Link
           href="/productos/agregar-productos"
@@ -36,10 +101,15 @@ const pageProductos = () => {
         </Link>
       </div>
       <div className="m-12 w-full overflow-auto border border-gray-200 rounded-lg">
-        <Tables />
+        <Tables
+          products={products}
+          isLoading={isLoading}
+          error={error}
+          onDelete={handleDelete}
+        />
       </div>
     </div>
   );
 };
 
-export default pageProductos;
+export default PageProductos;

@@ -1,16 +1,81 @@
 "use client";
-
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Tables from "./_components/Table";
+import Tables, { Customer } from "./_components/Tables/index";
 import Search from "../../(components)/Search";
+import { getClients, searchByFullname, deleteClientId } from "./api";
 
-const pageClientes = () => {
+const PageClientes = () => {
+  const [clients, setClients] = useState<Customer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchClients = React.useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const res = await getClients();
+      setClients(res);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Error fetching clients");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleSearch = React.useCallback(
+    async (term: string) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        if (term.trim() === "") {
+          await fetchClients();
+        } else {
+          const res = await searchByFullname(term);
+          setClients(res);
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Error searching clients");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [fetchClients]
+  );
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteClientId(id);
+      setClients(clients.filter((client) => client.id !== id));
+    } catch (err: unknown) {
+      console.error("Error deleting client:", err);
+      alert("Error al eliminar el cliente");
+    }
+  };
+
+  const hasFetched = React.useRef(false);
+
+  useEffect(() => {
+    if (!hasFetched.current) {
+      fetchClients();
+      hasFetched.current = true;
+    }
+  }, [fetchClients]);
+
   return (
     <div>
       <div className="m-12 flex flex-row justify-between items-center">
         <div>
           <h2 className="text-2xl mb-4">Clientes</h2>
-          <Search />
+          <Search onSearch={handleSearch} />
         </div>
         <Link
           href="/clientes/agregar-clientes"
@@ -36,10 +101,15 @@ const pageClientes = () => {
         </Link>
       </div>
       <div className="m-12 w-full overflow-auto border border-gray-200 rounded-lg">
-        <Tables />
+        <Tables
+          clients={clients}
+          isLoading={isLoading}
+          error={error}
+          onDelete={handleDelete}
+        />
       </div>
     </div>
   );
 };
 
-export default pageClientes;
+export default PageClientes;

@@ -15,9 +15,7 @@ const Sidebar = () => {
 
   return (
     <div className="h-full w-64 bg-gray-800 text-white flex flex-col p-4 shadow-lg">
-      <h1 className="text-2xl font-bold mb-8 text-center text-sky-400">
-        Valkia
-      </h1>
+      <h1 className="text-2xl font-bold mb-8 text-center text-white">Valkia</h1>
       <ul className="flex flex-col space-y-4">
         {menuItems.map((item) => {
           const isActive = pathname.startsWith(item.path);
