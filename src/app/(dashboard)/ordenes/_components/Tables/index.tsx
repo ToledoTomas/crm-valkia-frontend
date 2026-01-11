@@ -1,21 +1,27 @@
 import React from "react";
 
-export interface Customer {
+export interface Order {
   id: number;
-  fullname: string;
-  email: string;
-  phone: string;
+  customer: {
+    fullname: string;
+  };
+  products: {
+    name: string;
+  }[];
+  created_at: string;
+  total: number;
+  status: string;
 }
 
 interface TablesProps {
-  clients: Customer[];
+  orders: Order[];
   isLoading: boolean;
   error: string | null;
   onDelete: (id: number) => void;
 }
 
 export default function Tables({
-  clients,
+  orders,
   isLoading,
   error,
   onDelete,
@@ -26,8 +32,8 @@ export default function Tables({
   return (
     <div className="overflow-x-auto relative">
       {error && <div className="text-center py-4 text-red-600">{error}</div>}
-      {!isLoading && !error && clients.length === 0 && (
-        <div className="text-center py-4">No hay clientes disponibles</div>
+      {!isLoading && !error && orders.length === 0 && (
+        <div className="text-center py-4">No hay ordenes disponibles</div>
       )}
       <div
         className={`transition-opacity duration-200 ${
@@ -38,23 +44,47 @@ export default function Tables({
           <thead>
             <tr>
               <th className={classTh}>ID</th>
-              <th className={classTh}>Nombre completo</th>
-              <th className={classTh}>Email</th>
-              <th className={classTh}>Telefono</th>
+              <th className={classTh}>Cliente</th>
+              <th className={classTh}>Productos</th>
+              <th className={classTh}>Fecha</th>
+              <th className={classTh}>Total</th>
+              <th className={classTh}>Estado</th>
               <th className={classTh}>Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {clients.map((item: Customer) => (
+            {orders.map((item: Order) => (
               <tr key={item.id} className="hover:bg-gray-100">
                 <td className="px-5 py-4">{item.id}</td>
-                <td className="px-5 py-4">{item.fullname}</td>
-                <td className="px-5 py-4">{item.email}</td>
-                <td className="px-5 py-4">{item.phone}</td>
                 <td className="px-5 py-4">
+                  {item.customer?.fullname || "Cliente desconocido"}
+                </td>
+                <td className="px-5 py-4">
+                  {item.products && item.products.length > 0
+                    ? item.products.map((p) => p.name).join(", ")
+                    : "Sin productos"}
+                </td>
+                <td className="px-5 py-4">
+                  {new Date(item.created_at).toLocaleDateString()}
+                </td>
+                <td className="px-5 py-4">$ {item.total}</td>
+                <td className="px-5 py-4">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      item.status === "Pagado"
+                        ? "bg-green-100 text-green-800"
+                        : item.status === "Pendiente"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {item.status}
+                  </span>
+                </td>
+                <td className="px-5 py-4 text-sm font-medium">
                   <button
                     className="text-blue-600 hover:text-blue-900 transition-transform transform hover:scale-110 mr-3"
-                    title="Editar cliente"
+                    title="Editar orden"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -74,7 +104,7 @@ export default function Tables({
                   <button
                     onClick={() => onDelete(item.id)}
                     className="text-red-600 hover:text-red-900 font-bold text-xl transition-transform transform hover:scale-110"
-                    title="Eliminar cliente"
+                    title="Eliminar orden"
                   >
                     X
                   </button>
