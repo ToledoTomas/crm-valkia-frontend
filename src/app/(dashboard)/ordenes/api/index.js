@@ -12,7 +12,12 @@ export const getOrders = async () => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    return data;
+    // Handle paginated response { data: [...], meta: ... }
+    if (data && data.data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    // Handle legacy/flat array response
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error("Error fetching orders:", error);
     throw error;
@@ -82,20 +87,6 @@ export const deleteOrder = async (id) => {
 
 export const searchOrderById = async (id) => {
   try {
-    // Assuming the backend supports searching by ID or we just fetch this specific one
-    // But usually search expects a list. If this returns one object, we might need to wrap it in array.
-    // However, following the pattern of searchByName, let's assume a search endpoint.
-    // If exact ID match, maybe GET /orders/:id?
-    // Let's try to mimic searchByName but for ID.
-    // If the user wants a "searcher", usually it's a list filter.
-
-    // For now, let's assume a search endpoint exists or we filter client-side if needed,
-    // but the instruction says "buscador para buscar facturas por id".
-
-    // Changing strategy: The prompt says "search by id".
-    // Usually backend for search might be ?q=... or specific fields.
-    // I will use `?id=${id}` if it's a search endpoint, otherwise `?q=${id}`.
-
     const token = localStorage.getItem("token");
     const response = await fetch(`${API_URL}/search?id=${id}`, {
       headers: {
@@ -104,13 +95,34 @@ export const searchOrderById = async (id) => {
     });
 
     if (!response.ok) {
-      // Fallback: try to get by ID directly if search fails? No, let's assume search works.
       throw new Error("Error al buscar ordenes");
     }
 
     return response.json();
   } catch (error) {
     console.error("Error fetching orders:", error);
+    throw error;
+  }
+};
+
+export const updateStatusOrder = async (id, status) => {
+  try {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error updating order status:", error);
     throw error;
   }
 };

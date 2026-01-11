@@ -1,11 +1,39 @@
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createOrder } from "../../api";
 import { getProducts } from "../../../productos/api";
 import { getClients } from "../../../clientes/api";
 import { Product } from "../../../productos/_components/Tables";
 import { Customer } from "../../../clientes/_components/Tables";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Loader2, Save, Trash2, Plus } from "lucide-react";
 
 const Form = () => {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     clientId: "",
     clientName: "",
@@ -19,6 +47,7 @@ const Form = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,22 +66,21 @@ const Form = () => {
     fetchData();
   }, []);
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value } = e.target;
-    if (name === "clientId") {
-      const client = clients.find((c) => c.id === Number(value));
-      setFormData((prev) => ({
-        ...prev,
-        clientId: value,
-        clientName: client ? client.fullname : "",
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+  const handleClientChange = (value: string) => {
+    const client = clients.find((c) => c.id === Number(value));
+    setFormData((prev) => ({
+      ...prev,
+      clientId: value,
+      clientName: client ? client.fullname : "",
+    }));
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, date: e.target.value }));
+  };
+
+  const handleStatusChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, status: value }));
   };
 
   const handleAddProduct = () => {
@@ -90,14 +118,23 @@ const Form = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     if (formData.products.length === 0) {
       setError("Debe agregar al menos un producto a la orden");
+      setLoading(false);
       return;
     }
 
     if (!formData.clientId) {
       setError("Debe seleccionar un cliente");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.date) {
+      setError("Debe seleccionar una fecha");
+      setLoading(false);
       return;
     }
 
@@ -121,128 +158,174 @@ const Form = () => {
         total: 0,
       });
       alert("Orden creada exitosamente");
+      router.push("/ordenes");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al crear la orden");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="p-4 mt-4 col-span-3">
-      {error && <div className="text-red-600 mb-4">{error}</div>}
-      <form className="grid grid-cols-2 gap-4" onSubmit={handleSubmit}>
-        <div className="flex flex-col mb-4">
-          <label htmlFor="clientId">Cliente:</label>
-          <select
-            id="clientId"
-            name="clientId"
-            value={formData.clientId}
-            onChange={handleChange}
-            className="bg-gray-300 rounded-md p-2"
-            required
-          >
-            <option value="">Seleccione un cliente</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.fullname}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex flex-col mb-4">
-          <label htmlFor="date">Fecha:</label>
-          <input
-            type="date"
-            id="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            className="bg-gray-300 rounded-md p-2"
-            required
-          />
-        </div>
-
-        <div className="flex flex-col mb-4 col-span-2">
-          <label>Productos:</label>
-          <div className="flex gap-2 mb-2">
-            <select
-              value={selectedProduct}
-              onChange={(e) => setSelectedProduct(e.target.value)}
-              className="flex-1 bg-gray-300 rounded-md p-2"
-            >
-              <option value="">Seleccione un producto</option>
-              {products.map((product) => (
-                <option
-                  key={product.id}
-                  value={product.id}
-                  disabled={product.stock <= 0}
-                >
-                  {product.name} - ${product.price}{" "}
-                  {product.stock <= 0 ? "(Sin Stock)" : ""}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={handleAddProduct}
-              className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
-            >
-              Agregar
-            </button>
-          </div>
-
-          {formData.products.length > 0 && (
-            <div className="bg-gray-100 p-4 rounded-md">
-              <h4 className="font-bold mb-2">Productos Agregados:</h4>
-              <ul className="mb-4 space-y-2">
-                {formData.products.map((p, index) => (
-                  <li
-                    key={`${p.id}-${index}`}
-                    className="flex justify-between items-center bg-white p-2 rounded shadow-sm"
-                  >
-                    <span>
-                      {p.name} - ${p.price}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveProduct(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      Eliminar
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <div className="text-right font-bold text-xl">
-                Total: ${formData.total}
-              </div>
+    <Card className="w-full">
+      <form onSubmit={handleSubmit}>
+        <CardHeader>
+          <CardTitle>Detalles de la Orden</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {error && (
+            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+              {error}
             </div>
           )}
-        </div>
 
-        <div className="flex flex-col mb-4">
-          <label htmlFor="status">Estado:</label>
-          <select
-            id="status"
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="col-span-1 bg-gray-300 rounded-md placeholder:text-gray-600 p-2"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="clientId">Cliente</Label>
+              <Select
+                value={formData.clientId}
+                onValueChange={handleClientChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione un cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={String(client.id)}>
+                      {client.fullname}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date">Fecha</Label>
+              <Input
+                type="date"
+                id="date"
+                name="date"
+                value={formData.date}
+                onChange={handleDateChange}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Agregar Productos</Label>
+            <div className="flex gap-2">
+              <Select
+                value={selectedProduct}
+                onValueChange={setSelectedProduct}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Seleccione un producto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map((product) => (
+                    <SelectItem
+                      key={product.id}
+                      value={String(product.id)}
+                      disabled={product.stock <= 0}
+                    >
+                      {product.name} - ${product.price}{" "}
+                      {product.stock <= 0 ? "(Sin Stock)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                onClick={handleAddProduct}
+                disabled={!selectedProduct}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Agregar
+              </Button>
+            </div>
+          </div>
+
+          <div className="border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Producto</TableHead>
+                  <TableHead className="text-right">Precio</TableHead>
+                  <TableHead className="w-[100px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {formData.products.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={3}
+                      className="text-center text-muted-foreground h-24"
+                    >
+                      No hay productos agregados
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  formData.products.map((p, index) => (
+                    <TableRow key={`${p.id}-${index}`}>
+                      <TableCell>{p.name}</TableCell>
+                      <TableCell className="text-right">${p.price}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          onClick={() => handleRemoveProduct(index)}
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Eliminar</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            <div className="p-4 bg-muted/50 flex justify-end items-center gap-2 border-t">
+              <span className="font-semibold">Total:</span>
+              <span className="text-xl font-bold">${formData.total}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2 w-full md:w-1/3">
+            <Label htmlFor="status">Estado</Label>
+            <Select value={formData.status} onValueChange={handleStatusChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Estado de la orden" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                <SelectItem value="Pagado">Pagado</SelectItem>
+                <SelectItem value="Cancelado">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-end gap-2">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="bg-[#e5e5d0] text-black hover:bg-[#d8d8b9]"
           >
-            <option value="Pendiente">Pendiente</option>
-            <option value="Pagado">Pagado</option>
-            <option value="Cancelado">Cancelado</option>
-          </select>
-        </div>
-
-        <button
-          type="submit"
-          className="bg-sky-200 p-2 mt-4 col-start-2 rounded-sm cursor-pointer text-center hover:bg-sky-300 transition-all duration-300"
-        >
-          Guardar Orden
-        </button>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" /> Guardar Orden
+              </>
+            )}
+          </Button>
+        </CardFooter>
       </form>
-    </div>
+    </Card>
   );
 };
 

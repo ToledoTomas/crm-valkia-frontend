@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { login } from "./api";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 const Login = () => {
   const router = useRouter();
@@ -28,8 +33,8 @@ const Login = () => {
       } else {
         console.error("No token found in response");
       }
-      router.push("/dashboard");
-    } catch (err: any) {
+      router.push("/productos");
+    } catch (err: unknown) {
       console.error("Error logging in:", err);
       setError(
         "Error al iniciar sesión. Por favor verifique sus credenciales."
@@ -40,41 +45,57 @@ const Login = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-2xl font-bold mb-4">Inicio de Sesión</h1>
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-4 w-full max-w-xs"
-      >
-        {error && (
-          <div className="text-red-500 text-sm text-center">{error}</div>
-        )}
-        <input
-          type="email"
-          placeholder="Email"
-          className="border p-2 rounded"
-          value={user.email}
-          onChange={(e) => setUser({ ...user, email: e.target.value })}
-          disabled={loading}
-        />
-        <input
-          type="password"
-          placeholder="Contraseña"
-          className="border p-2 rounded"
-          value={user.password}
-          onChange={(e) => setUser({ ...user, password: e.target.value })}
-          disabled={loading}
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className={`bg-sky-200 p-2 rounded-md cursor-pointer hover:bg-sky-300 transition-all duration-300 ${
-            loading ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-        >
-          {loading ? "Cargando..." : "Entrar"}
-        </button>
-      </form>
+    <div className="flex flex-col items-center justify-center h-screen bg-[#fbfbf2]">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-center">
+            Inicio de Sesión
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {error && (
+              <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md text-center">
+                {error}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="nombre@ejemplo.com"
+                value={user.email}
+                onChange={(e) => setUser({ ...user, email: e.target.value })}
+                disabled={loading}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="********"
+                value={user.password}
+                onChange={(e) => setUser({ ...user, password: e.target.value })}
+                disabled={loading}
+                required
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-[#e5e5d0] text-black hover:bg-[#d8d8b9] cursor-pointer"
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {loading ? "Cargando..." : "Entrar"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };

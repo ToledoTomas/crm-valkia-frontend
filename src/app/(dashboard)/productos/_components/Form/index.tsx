@@ -1,18 +1,31 @@
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createProduct } from "../../api";
-import MultiSelect from "../MultiSelect";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Loader2, Save } from "lucide-react";
 
 const Form = () => {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
     cost: "",
     stock: "",
-    size: [] as string[],
-    color: [] as string[],
+    size: "",
+    color: "",
   });
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -23,17 +36,10 @@ const Form = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSizeChange = (selected: string[]) => {
-    setFormData({ ...formData, size: selected });
-  };
-
-  const handleColorChange = (selected: string[]) => {
-    setFormData({ ...formData, color: selected });
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     try {
       const productData = {
@@ -41,118 +47,166 @@ const Form = () => {
         price: Number(formData.price),
         cost: Number(formData.cost),
         stock: Number(formData.stock),
+        size: formData.size
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        color: formData.color
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
       };
 
       await createProduct(productData);
       setFormData({
         name: "",
-        size: [],
+        size: "",
         description: "",
         price: "",
         cost: "",
         stock: "",
-        color: [],
+        color: "",
       });
       alert("Producto creado exitosamente");
+      router.push("/productos");
+      router.refresh();
     } catch (err) {
+      console.error(err);
       setError(
         err instanceof Error ? err.message : "Error al crear el producto"
       );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="p-4 mt-4 col-span-2">
-      {error && <div className="text-red-600 mb-4">{error}</div>}
-      <form className="grid grid-cols-2 gap-4" onSubmit={handleSubmit}>
-        <div className="flex flex-col mb-4">
-          <label htmlFor="name">Titulo:</label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="col-span-1 bg-gray-300 rounded-md placeholder:text-gray-600 p-2"
-            placeholder="Ingrese el titulo del producto"
-            required
-          />
-        </div>
-        <div className="flex flex-col mb-4">
-          <label htmlFor="price">Precio:</label>
-          <input
-            type="number"
-            id="price"
-            name="price"
-            value={formData.price}
-            onChange={handleChange}
-            className="col-span-1 bg-gray-300 rounded-md placeholder:text-gray-600 p-2"
-            placeholder="Ingrese el precio del producto"
-            required
-          />
-        </div>
+    <Card className="w-full">
+      <form onSubmit={handleSubmit}>
+        <CardHeader>
+          <CardTitle>Información del Producto</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {error && (
+            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+              {error}
+            </div>
+          )}
 
-        <div className="flex flex-col mb-4">
-          <label htmlFor="cost">Costo:</label>
-          <input
-            type="number"
-            id="cost"
-            name="cost"
-            value={formData.cost}
-            onChange={handleChange}
-            className="col-span-1 bg-gray-300 rounded-md placeholder:text-gray-600 p-2"
-            placeholder="Ingrese el costo del producto"
-            required
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="name">Nombre</Label>
+            <Input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Ingrese el nombre del producto"
+              required
+            />
+          </div>
 
-        <div className="flex flex-col col-span-2 mb-4">
-          <label htmlFor="description">Descripcion:</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            className="h-24 bg-gray-300 rounded-md placeholder:text-gray-600 p-2"
-            placeholder="Ingrese la descripcion del producto"
-            required
-          ></textarea>
-        </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="price">Precio</Label>
+              <Input
+                type="number"
+                id="price"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cost">Costo</Label>
+              <Input
+                type="number"
+                id="cost"
+                name="cost"
+                value={formData.cost}
+                onChange={handleChange}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+          </div>
 
-        <MultiSelect
-          label="Talles:"
-          options={["XS", "S", "M", "L", "XL"]}
-          selected={formData.size}
-          onChange={handleSizeChange}
-        />
+          <div className="space-y-2">
+            <Label htmlFor="description">Descripción</Label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Ingrese la descripción del producto"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+              required
+            />
+          </div>
 
-        <MultiSelect
-          label="Colores:"
-          options={["Blanco", "Negro", "Beige", "Gris", "Verde", "Marron"]}
-          selected={formData.color}
-          onChange={handleColorChange}
-        />
-        <div className="flex flex-col">
-          <label htmlFor="stock">Stock:</label>
-          <input
-            type="number"
-            id="stock"
-            name="stock"
-            value={formData.stock}
-            onChange={handleChange}
-            className="col-span-1 bg-gray-300 rounded-md placeholder:text-gray-600 p-2"
-            placeholder="Ingrese la cantidad en stock"
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          className="bg-sky-200 p-2 mt-4 col-start-2 rounded-sm cursor-pointer text-center hover:bg-sky-300 transition-all duration-300"
-        >
-          Guardar Producto
-        </button>
+          <div className="space-y-2">
+            <Label htmlFor="size">Talles (separados por coma)</Label>
+            <Input
+              type="text"
+              id="size"
+              name="size"
+              value={formData.size}
+              onChange={handleChange}
+              placeholder="XS, S, M, L, XL"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="color">Colores (separados por coma)</Label>
+            <Input
+              type="text"
+              id="color"
+              name="color"
+              value={formData.color}
+              onChange={handleChange}
+              placeholder="Blanco, Negro, Rojo"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="stock">Stock</Label>
+            <Input
+              type="number"
+              id="stock"
+              name="stock"
+              value={formData.stock}
+              onChange={handleChange}
+              placeholder="0"
+              min="0"
+              required
+            />
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-end gap-2">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="bg-[#e5e5d0] text-black hover:bg-[#d8d8b9]"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" /> Guardar Producto
+              </>
+            )}
+          </Button>
+        </CardFooter>
       </form>
-    </div>
+    </Card>
   );
 };
 

@@ -79,7 +79,7 @@ const PageProductos = () => {
         </div>
         <Link
           href="/productos/agregar-productos"
-          className="mt-2 p-3 rounded-md flex flex-row items-center gap-2 bg-sky-200 cursor-pointer hover:bg-sky-300"
+          className="mt-2 p-3 rounded-md flex flex-row items-center gap-2 bg-[#e5e5d0] text-black cursor-pointer hover:bg-[#d8d8b9]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

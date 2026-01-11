@@ -1,4 +1,15 @@
 import React from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Edit, Trash2 } from "lucide-react";
+import Link from "next/link";
 
 export interface Customer {
   id: number;
@@ -14,81 +25,120 @@ interface TablesProps {
   onDelete: (id: number) => void;
 }
 
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+
 export default function Tables({
   clients,
   isLoading,
   error,
   onDelete,
 }: TablesProps) {
-  const classTh =
-    "px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase ";
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  const confirmDelete = () => {
+    if (deleteId) {
+      onDelete(deleteId);
+      setDeleteId(null);
+    }
+  };
 
   return (
-    <div className="overflow-x-auto relative">
-      {error && <div className="text-center py-4 text-red-600">{error}</div>}
-      {!isLoading && !error && clients.length === 0 && (
-        <div className="text-center py-4">No hay clientes disponibles</div>
-      )}
-      <div
-        className={`transition-opacity duration-200 ${
-          isLoading ? "opacity-50 pointer-events-none" : ""
-        }`}
-      >
-        <table className="min-w-full">
-          <thead>
-            <tr>
-              <th className={classTh}>ID</th>
-              <th className={classTh}>Nombre completo</th>
-              <th className={classTh}>Email</th>
-              <th className={classTh}>Telefono</th>
-              <th className={classTh}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {clients.map((item: Customer) => (
-              <tr key={item.id} className="hover:bg-gray-100">
-                <td className="px-5 py-4">{item.id}</td>
-                <td className="px-5 py-4">{item.fullname}</td>
-                <td className="px-5 py-4">{item.email}</td>
-                <td className="px-5 py-4">{item.phone}</td>
-                <td className="px-5 py-4">
-                  <button
-                    className="text-blue-600 hover:text-blue-900 transition-transform transform hover:scale-110 mr-3"
-                    title="Editar cliente"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="w-5 h-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => onDelete(item.id)}
-                    className="text-red-600 hover:text-red-900 font-bold text-xl transition-transform transform hover:scale-110"
-                    title="Eliminar cliente"
-                  >
-                    X
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="bg-white/80 p-2 rounded shadow">Cargando...</div>
+    <>
+      <div className="relative w-full overflow-auto rounded-md border bg-card">
+        {error && (
+          <div className="text-center py-4 text-destructive">{error}</div>
+        )}
+
+        {!isLoading && !error && clients.length === 0 && (
+          <div className="text-center py-10 text-muted-foreground">
+            No hay clientes disponibles
+          </div>
+        )}
+
+        <div className={isLoading ? "opacity-50 pointer-events-none" : ""}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Nombre completo</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Telefono</TableHead>
+                <TableHead>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {clients.map((item: Customer) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.id}</TableCell>
+                  <TableCell>{item.fullname}</TableCell>
+                  <TableCell>{item.email}</TableCell>
+                  <TableCell>{item.phone}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/clientes/editar-clientes?id=${item.id}`}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 hover:scale-110 transition-all duration-200"
+                        >
+                          <Edit className="h-4 w-4" />
+                          <span className="sr-only">Editar</span>
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteId(item.id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Eliminar</span>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
-      )}
-    </div>
+
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-[1px]">
+            <div className="text-sm text-muted-foreground">Cargando...</div>
+          </div>
+        )}
+      </div>
+
+      <Dialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Estás seguro?</DialogTitle>
+            <DialogDescription>
+              Esta acción no se puede deshacer. Esto eliminará permanentemente
+              al cliente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteId(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

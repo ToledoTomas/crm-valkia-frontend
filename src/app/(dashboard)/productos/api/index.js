@@ -12,7 +12,12 @@ export const getProducts = async () => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    return data;
+    // Handle paginated response { data: [...], meta: ... }
+    if (data && data.data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    // Handle legacy/flat array response
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error("Error fetching products:", error);
     throw error;
@@ -97,6 +102,50 @@ export const searchByName = async (name) => {
     return response.json();
   } catch (error) {
     console.error("Error fetching products:", error);
+    throw error;
+  }
+};
+
+export const getProductById = async (id) => {
+  try {
+    const response = await fetch(`${API_URL}/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `HTTP error! status: ${response.status}`
+      );
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching product by ID:", error);
+    throw error;
+  }
+};
+
+export const updateProduct = async (id, product) => {
+  try {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(product),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error updating product:", error);
     throw error;
   }
 };

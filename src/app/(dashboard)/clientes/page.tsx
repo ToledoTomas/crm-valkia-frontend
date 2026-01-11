@@ -3,10 +3,11 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Tables, { Customer } from "./_components/Tables/index";
 import Search from "../../(components)/Search";
-import { getClients, searchByFullname, deleteClientId } from "./api";
+import { getClients, deleteClientId } from "./api";
 
 const PageClientes = () => {
   const [clients, setClients] = useState<Customer[]>([]);
+  const [allClients, setAllClients] = useState<Customer[]>([]); // Store all clients
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,6 +17,7 @@ const PageClientes = () => {
       setError(null);
       const res = await getClients();
       setClients(res);
+      setAllClients(res); // Save to separate state for filtering
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -28,33 +30,32 @@ const PageClientes = () => {
   }, []);
 
   const handleSearch = React.useCallback(
-    async (term: string) => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        if (term.trim() === "") {
-          await fetchClients();
-        } else {
-          const res = await searchByFullname(term);
-          setClients(res);
-        }
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Error searching clients");
-        }
-      } finally {
-        setIsLoading(false);
+    (term: string) => {
+      // Client-side filtering
+      if (term.trim() === "") {
+        setClients(allClients);
+      } else {
+        const lowerTerm = term.toLowerCase();
+        const filtered = allClients.filter(
+          (client) =>
+            client.fullname.toLowerCase().includes(lowerTerm) ||
+            client.email.toLowerCase().includes(lowerTerm) ||
+            client.phone.includes(term)
+        );
+        setClients(filtered);
       }
     },
-    [fetchClients]
+    [allClients]
   );
 
   const handleDelete = async (id: number) => {
     try {
       await deleteClientId(id);
-      setClients(clients.filter((client) => client.id !== id));
+      // Update both states
+      const filtered = clients.filter((client) => client.id !== id);
+      const filteredAll = allClients.filter((client) => client.id !== id);
+      setClients(filtered);
+      setAllClients(filteredAll);
     } catch (err: unknown) {
       console.error("Error deleting client:", err);
       alert("Error al eliminar el cliente");
@@ -79,7 +80,7 @@ const PageClientes = () => {
         </div>
         <Link
           href="/clientes/agregar-clientes"
-          className="mt-2 p-3 rounded-md flex flex-row items-center gap-2 bg-sky-200 cursor-pointer hover:bg-sky-300"
+          className="mt-2 p-3 rounded-md flex flex-row items-center gap-2 bg-[#e5e5d0] text-black cursor-pointer hover:bg-[#d8d8b9]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
