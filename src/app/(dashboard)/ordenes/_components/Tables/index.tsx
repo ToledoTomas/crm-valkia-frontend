@@ -147,8 +147,12 @@ export default function Tables({
                         ) {
                           displayStatus = parsed.status;
                         }
-                      } catch (e) {
-                        // Not JSON, use as is
+                      } catch (e: unknown) {
+                        if (e instanceof Error) {
+                          console.error("Error parsing JSON:", e.message);
+                        } else {
+                          console.error("Error parsing JSON:", e);
+                        }
                       }
 
                       return (
@@ -171,7 +175,7 @@ export default function Tables({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 hover:scale-110 transition-all duration-200"
+                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 hover:scale-110 transition-all duration-200 cursor-pointer"
                         onClick={() => openEditModal(item)}
                       >
                         <Edit className="h-4 w-4" />
@@ -181,7 +185,7 @@ export default function Tables({
                         variant="ghost"
                         size="icon"
                         onClick={() => setDeleteId(item.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive-50 hover:scale-110 transition-all duration-200 cursor-pointer"
                       >
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Eliminar</span>

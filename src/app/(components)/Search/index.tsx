@@ -27,7 +27,7 @@ const Search = ({ onSearch }: { onSearch: (name: string) => void }) => {
         <input
           type="text"
           placeholder="Buscar..."
-          className="shadow-md rounded-md p-2"
+          className="rounded-md p-2 border border-gray-300"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />

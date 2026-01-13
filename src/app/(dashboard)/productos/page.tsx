@@ -100,7 +100,7 @@ const PageProductos = () => {
           Agregar Producto
         </Link>
       </div>
-      <div className="m-12 w-full overflow-auto border border-gray-200 rounded-lg">
+      <div className="w-full border border-gray-200 rounded-lg">
         <Tables
           products={products}
           isLoading={isLoading}

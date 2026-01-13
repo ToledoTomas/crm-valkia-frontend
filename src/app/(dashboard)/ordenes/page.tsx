@@ -114,7 +114,7 @@ const PageOrdenes = () => {
           Nueva Orden
         </Link>
       </div>
-      <div className="m-12 w-full overflow-auto border border-gray-200 rounded-lg">
+      <div className="w-full border border-gray-200 rounded-lg">
         <Tables
           orders={orders}
           isLoading={isLoading}

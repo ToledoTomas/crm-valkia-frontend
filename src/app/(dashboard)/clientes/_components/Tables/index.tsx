@@ -52,7 +52,7 @@ export default function Tables({
 
   return (
     <>
-      <div className="relative w-full overflow-auto rounded-md border bg-card">
+      <div className="relative w-full overflow-hidden rounded-md border bg-card">
         {error && (
           <div className="text-center py-4 text-destructive">{error}</div>
         )}
@@ -87,7 +87,7 @@ export default function Tables({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 hover:scale-110 transition-all duration-200"
+                          className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 hover:scale-110 transition-all duration-200 cursor-pointer"
                         >
                           <Edit className="h-4 w-4" />
                           <span className="sr-only">Editar</span>
@@ -97,7 +97,7 @@ export default function Tables({
                         variant="ghost"
                         size="icon"
                         onClick={() => setDeleteId(item.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive-50 hover:scale-110 transition-all duration-200 cursor-pointer"
                       >
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Eliminar</span>
