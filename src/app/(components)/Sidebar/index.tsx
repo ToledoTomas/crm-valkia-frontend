@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const Sidebar = () => {
+import { cn } from "@/lib/utils";
+
+interface SidebarProps {
+  className?: string;
+  onLinkClick?: () => void;
+}
+
+const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const pathname = usePathname();
 
   const menuItems = [
@@ -13,7 +20,12 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="h-full w-64 bg-[#fbfbf2] text-foreground flex flex-col p-4 shadow-lg border-r">
+    <div
+      className={cn(
+        "h-full w-64 bg-[#fbfbf2] text-foreground flex flex-col p-4 shadow-lg border-r",
+        className
+      )}
+    >
       <h1 className="text-2xl font-semibold mb-8 text-center text-black">
         Valkia
       </h1>
@@ -24,6 +36,7 @@ const Sidebar = () => {
             <li key={item.path}>
               <Link
                 href={item.path}
+                onClick={onLinkClick}
                 className={`block p-3 rounded-lg transition-colors duration-200 cursor-pointer ${
                   isActive
                     ? "bg-[#e5e5d0] text-black font-medium"

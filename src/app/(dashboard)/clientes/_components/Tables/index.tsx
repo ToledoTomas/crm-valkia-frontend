@@ -52,7 +52,7 @@ export default function Tables({
 
   return (
     <>
-      <div className="relative w-full overflow-hidden rounded-md border bg-card">
+      <div className="relative w-full overflow-auto rounded-md border bg-card">
         {error && (
           <div className="text-center py-4 text-destructive">{error}</div>
         )}

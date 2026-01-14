@@ -73,14 +73,14 @@ const PageClientes = () => {
 
   return (
     <div>
-      <div className="m-12 flex flex-row justify-between items-center">
-        <div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="w-full md:w-auto">
           <h2 className="text-2xl mb-4">Clientes</h2>
           <Search onSearch={handleSearch} />
         </div>
         <Link
           href="/clientes/agregar-clientes"
-          className="mt-2 p-3 rounded-md flex flex-row items-center gap-2 bg-[#e5e5d0] text-black cursor-pointer hover:bg-[#d8d8b9]"
+          className="mt-2 text-nowrap p-3 rounded-md flex flex-row items-center gap-2 bg-[#e5e5d0] text-black cursor-pointer hover:bg-[#d8d8b9]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

@@ -21,13 +21,13 @@ const Search = ({ onSearch }: { onSearch: (name: string) => void }) => {
     <div>
       <form
         action="#"
-        className="flex mr-8"
+        className="flex w-full md:w-auto md:mr-8"
         onSubmit={(e) => e.preventDefault()}
       >
         <input
           type="text"
           placeholder="Buscar..."
-          className="rounded-md p-2 border border-gray-300"
+          className="w-full md:w-64 rounded-md p-2 border border-gray-300"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
