@@ -74,7 +74,7 @@ export default function Tables({
       setSelectedOrder(null);
     } catch (error) {
       console.error("Error updating status:", error);
-      alert("Error al actualizar el estado");
+      // alert("Error al actualizar el estado");
     } finally {
       setIsUpdating(false);
     }

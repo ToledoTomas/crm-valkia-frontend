@@ -58,7 +58,7 @@ const PageClientes = () => {
       setAllClients(filteredAll);
     } catch (err: unknown) {
       console.error("Error deleting client:", err);
-      alert("Error al eliminar el cliente");
+      // alert("Error al eliminar el cliente");
     }
   };
 

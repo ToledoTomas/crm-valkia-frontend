@@ -71,7 +71,7 @@ const PageOrdenes = () => {
       setOrders(orders.filter((order) => order.id !== id));
     } catch (err: unknown) {
       console.error("Error deleting order:", err);
-      alert("Error al eliminar la orden");
+      // alert("Error al eliminar la orden");
     }
   };
 

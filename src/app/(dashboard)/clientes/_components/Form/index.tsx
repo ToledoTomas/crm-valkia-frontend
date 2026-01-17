@@ -62,8 +62,10 @@ const Form = () => {
 
   const handleSuccessClose = () => {
     setShowSuccess(false);
-    router.push("/clientes");
-    router.refresh();
+    setTimeout(() => {
+      router.push("/clientes");
+      router.refresh();
+    }, 100);
   };
 
   return (
@@ -139,7 +141,7 @@ const Form = () => {
         </form>
       </Card>
 
-      <Dialog open={showSuccess} onOpenChange={handleSuccessClose}>
+      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

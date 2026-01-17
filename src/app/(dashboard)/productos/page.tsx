@@ -57,7 +57,7 @@ const PageProductos = () => {
       setProducts(products.filter((product) => product.id !== id));
     } catch (err: unknown) {
       console.error("Error deleting product:", err);
-      alert("Error al eliminar el producto");
+      // alert("Error al eliminar el producto");
     }
   };
 

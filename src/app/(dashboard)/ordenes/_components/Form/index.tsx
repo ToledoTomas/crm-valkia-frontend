@@ -30,7 +30,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Save, Trash2, Plus } from "lucide-react";
+import { Loader2, Save, Trash2, Plus, CheckCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Form = () => {
   const router = useRouter();
@@ -48,6 +56,7 @@ const Form = () => {
   const [selectedProduct, setSelectedProduct] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,7 +99,7 @@ const Form = () => {
 
     if (product) {
       if (product.stock <= 0) {
-        alert("El producto no tiene stock disponible");
+        setError(`El producto ${product.name} no tiene stock disponible`);
         return;
       }
 
@@ -140,7 +149,7 @@ const Form = () => {
 
     try {
       const orderData = {
-        id: Math.floor(Math.random() * 1000000), // Auto-generated ID
+        id: Math.floor(Math.random() * 1000000),
         customer: Number(formData.clientId),
         created_at: new Date(formData.date).toISOString(),
         total: formData.total,
@@ -157,9 +166,7 @@ const Form = () => {
         status: "Pendiente",
         total: 0,
       });
-      alert("Orden creada exitosamente");
-      router.push("/ordenes");
-      router.refresh();
+      setShowSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al crear la orden");
     } finally {
@@ -167,165 +174,197 @@ const Form = () => {
     }
   };
 
+  const handleSuccessClose = () => {
+    setShowSuccess(false);
+    router.push("/ordenes");
+    router.refresh();
+  };
+
   return (
-    <Card className="w-full">
-      <form onSubmit={handleSubmit}>
-        <CardHeader>
-          <CardTitle>Detalles de la Orden</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {error && (
-            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
-              {error}
-            </div>
-          )}
+    <>
+      <Card className="w-full">
+        <form onSubmit={handleSubmit}>
+          <CardHeader>
+            <CardTitle>Detalles de la Orden</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {error && (
+              <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                {error}
+              </div>
+            )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="clientId">Cliente</Label>
+                <Select
+                  value={formData.clientId}
+                  onValueChange={handleClientChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione un cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={String(client.id)}>
+                        {client.fullname}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date">Fecha</Label>
+                <Input
+                  type="date"
+                  id="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleDateChange}
+                  required
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="clientId">Cliente</Label>
-              <Select
-                value={formData.clientId}
-                onValueChange={handleClientChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione un cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={String(client.id)}>
-                      {client.fullname}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Agregar Productos</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={selectedProduct}
+                  onValueChange={setSelectedProduct}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Seleccione un producto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products.map((product) => (
+                      <SelectItem
+                        key={product.id}
+                        value={String(product.id)}
+                        disabled={product.stock <= 0}
+                      >
+                        {product.name} - ${product.price}{" "}
+                        {product.stock <= 0 ? "(Sin Stock)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  onClick={handleAddProduct}
+                  disabled={!selectedProduct}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Agregar
+                </Button>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="date">Fecha</Label>
-              <Input
-                type="date"
-                id="date"
-                name="date"
-                value={formData.date}
-                onChange={handleDateChange}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Agregar Productos</Label>
-            <div className="flex gap-2">
-              <Select
-                value={selectedProduct}
-                onValueChange={setSelectedProduct}
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Seleccione un producto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem
-                      key={product.id}
-                      value={String(product.id)}
-                      disabled={product.stock <= 0}
-                    >
-                      {product.name} - ${product.price}{" "}
-                      {product.stock <= 0 ? "(Sin Stock)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                onClick={handleAddProduct}
-                disabled={!selectedProduct}
-              >
-                <Plus className="mr-2 h-4 w-4" /> Agregar
-              </Button>
-            </div>
-          </div>
-
-          <div className="border rounded-md overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Producto</TableHead>
-                  <TableHead className="text-right">Precio</TableHead>
-                  <TableHead className="w-[100px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {formData.products.length === 0 ? (
+            <div className="border rounded-md overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={3}
-                      className="text-center text-muted-foreground h-24"
-                    >
-                      No hay productos agregados
-                    </TableCell>
+                    <TableHead>Producto</TableHead>
+                    <TableHead className="text-right">Precio</TableHead>
+                    <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
-                ) : (
-                  formData.products.map((p, index) => (
-                    <TableRow key={`${p.id}-${index}`}>
-                      <TableCell>{p.name}</TableCell>
-                      <TableCell className="text-right">${p.price}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          type="button"
-                          onClick={() => handleRemoveProduct(index)}
-                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Eliminar</span>
-                        </Button>
+                </TableHeader>
+                <TableBody>
+                  {formData.products.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={3}
+                        className="text-center text-muted-foreground h-24"
+                      >
+                        No hay productos agregados
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-            <div className="p-4 bg-muted/50 flex justify-end items-center gap-2 border-t">
-              <span className="font-semibold">Total:</span>
-              <span className="text-xl font-bold">${formData.total}</span>
+                  ) : (
+                    formData.products.map((p, index) => (
+                      <TableRow key={`${p.id}-${index}`}>
+                        <TableCell>{p.name}</TableCell>
+                        <TableCell className="text-right">${p.price}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            onClick={() => handleRemoveProduct(index)}
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Eliminar</span>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              <div className="p-4 bg-muted/50 flex justify-end items-center gap-2 border-t">
+                <span className="font-semibold">Total:</span>
+                <span className="text-xl font-bold">${formData.total}</span>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2 w-full md:w-1/3">
-            <Label htmlFor="status">Estado</Label>
-            <Select value={formData.status} onValueChange={handleStatusChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Estado de la orden" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Pendiente">Pendiente</SelectItem>
-                <SelectItem value="Pagado">Pagado</SelectItem>
-                <SelectItem value="Cancelado">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-end gap-2">
-          <Button
-            type="submit"
-            disabled={loading}
-            className="bg-[#e5e5d0] text-black hover:bg-[#d8d8b9]"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" /> Guardar Orden
-              </>
-            )}
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+            <div className="space-y-2 w-full md:w-1/3">
+              <Label htmlFor="status">Estado</Label>
+              <Select
+                value={formData.status}
+                onValueChange={handleStatusChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Estado de la orden" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pendiente">Pendiente</SelectItem>
+                  <SelectItem value="Pagado">Pagado</SelectItem>
+                  <SelectItem value="Cancelado">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-end gap-2">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-[#e5e5d0] text-black hover:bg-[#d8d8b9]"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" /> Guardar Orden
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+      <Dialog open={showSuccess} onOpenChange={handleSuccessClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-6 w-6 text-green-500" /> Operación
+              Exitosa
+            </DialogTitle>
+            <DialogDescription>
+              La orden ha sido creada exitosamente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={handleSuccessClose}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
