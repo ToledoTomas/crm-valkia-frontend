@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "../../api";
+import { createCustomer } from "../../api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,7 +43,7 @@ const Form = () => {
     setLoading(true);
 
     try {
-      await createClient(formData);
+      await createCustomer({ name: formData.fullname, email: formData.email, phone: formData.phone });
       setFormData({
         fullname: "",
         email: "",

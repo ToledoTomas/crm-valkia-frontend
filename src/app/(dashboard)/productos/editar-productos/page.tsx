@@ -2,10 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getProductById, updateProduct } from "../api";
+import { ArrowLeft, Save, Loader2, Plus, Trash2, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardContent,
@@ -13,120 +18,217 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
-import Link from "next/link";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const PageEditarProducto = () => {
+import {
+  getProductById,
+  updateProduct,
+  addVariant,
+  updateVariant,
+  deleteVariant,
+} from "../api";
+import { EnrichedProduct, EnrichedVariant } from "@/types/product";
+
+export default function PageEditarProducto() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [product, setProduct] = useState<EnrichedProduct | null>(null);
 
+  // Datos del producto
   const [formData, setFormData] = useState({
     name: "",
+    category: "",
     description: "",
+    active: true,
+  });
+
+  // Variantes
+  const [variants, setVariants] = useState<EnrichedVariant[]>([]);
+  const [newVariant, setNewVariant] = useState({
+    color: "",
+    size: "",
     cost: 0,
     price: 0,
     stock: 0,
-    size: "", // handled as string for input
-    color: "", // handled as string for input
+    minStock: 0,
   });
 
   useEffect(() => {
     if (id) {
-      loadProduct(id);
+      loadProduct(parseInt(id));
     } else {
-      setError("No se proporcionó un ID de producto válido.");
+      toast.error("No se proporcionó un ID de producto válido");
       setLoading(false);
     }
   }, [id]);
 
-  const loadProduct = async (productId: string) => {
+  const loadProduct = async (productId: number) => {
     try {
       setLoading(true);
       const data = await getProductById(productId);
-      if (data) {
-        setFormData({
-          name: data.name || "",
-          description: data.description || "",
-          cost: data.cost || 0,
-          price: data.price || 0,
-          stock: data.stock || 0,
-          size: data.size ? data.size.join(", ") : "",
-          color: data.color ? data.color.join(", ") : "",
-        });
-      }
-    } catch (err: unknown) {
-      console.error(err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Error al cargar los datos del producto."
-      );
+      setProduct(data);
+      setFormData({
+        name: data.name,
+        category: data.category,
+        description: data.description || "",
+        active: data.active,
+      });
+      setVariants(data.variants || []);
+    } catch (error) {
+      toast.error("Error al cargar el producto");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleProductChange = (field: string, value: string | boolean) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleVariantChange = (field: string, value: string | number) => {
+    setNewVariant((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const calculateProfit = (price: number, cost: number) => price - cost;
+  const calculateMargin = (price: number, cost: number) => {
+    if (price === 0) return 0;
+    return Math.round(((price - cost) / price) * 100);
+  };
+
+  const addNewVariant = async () => {
+    if (!id) return;
+    if (!newVariant.color || !newVariant.size) {
+      toast.error("El color y talle son obligatorios");
+      return;
+    }
+    if (newVariant.price <= 0) {
+      toast.error("El precio debe ser mayor a 0");
+      return;
+    }
+
+    const duplicate = variants.find(
+      (v) => v.color === newVariant.color && v.size === newVariant.size
+    );
+    if (duplicate) {
+      toast.error("Ya existe una variante con este color y talle");
+      return;
+    }
+
+    try {
+      const added = await addVariant(parseInt(id), {
+        color: newVariant.color,
+        size: newVariant.size,
+        cost: newVariant.cost,
+        price: newVariant.price,
+        stock: newVariant.stock,
+        minStock: newVariant.minStock,
+      });
+      setVariants([...variants, added]);
+      setNewVariant({
+        color: "",
+        size: "",
+        cost: 0,
+        price: 0,
+        stock: 0,
+        minStock: 0,
+      });
+      toast.success("Variante agregada");
+    } catch (error) {
+      toast.error("Error al agregar la variante");
+    }
+  };
+
+  const updateExistingVariant = async (
+    variantId: number,
+    field: string,
+    value: number
+  ) => {
+    try {
+      const updated = await updateVariant(variantId, { [field]: value });
+      setVariants(variants.map((v) => (v.id === variantId ? updated : v)));
+    } catch (error) {
+      toast.error("Error al actualizar la variante");
+    }
+  };
+
+  const removeVariant = async (variantId: number) => {
+    if (!confirm("¿Estás seguro de que quieres eliminar esta variante?")) return;
+    
+    try {
+      await deleteVariant(variantId);
+      setVariants(variants.filter((v) => v.id !== variantId));
+      toast.success("Variante eliminada");
+    } catch (error) {
+      toast.error("Error al eliminar la variante");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
 
-    try {
-      setSaving(true);
-      // Process Size and Color back to arrays
-      const payload = {
-        ...formData,
-        cost: Number(formData.cost),
-        price: Number(formData.price),
-        stock: Number(formData.stock),
-        size: formData.size
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        color: formData.color
-          .split(",")
-          .map((c) => c.trim())
-          .filter(Boolean),
-      };
+    if (!formData.name || !formData.category) {
+      toast.error("El nombre y categoría son obligatorios");
+      return;
+    }
 
-      await updateProduct(id, payload);
-      router.push("/productos"); // Redirect back to list
-      router.refresh(); // Refresh data
-    } catch (err: unknown) {
-      console.error(err);
-      setError(
-        err instanceof Error ? err.message : "Error al actualizar el producto."
-      );
+    setSaving(true);
+
+    try {
+      await updateProduct(parseInt(id), formData);
+      setShowSuccess(true);
+    } catch (error) {
+      toast.error("Error al actualizar el producto");
     } finally {
       setSaving(false);
     }
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency: "ARS",
+    }).format(value);
+  };
+
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-6">
+        <Skeleton className="h-12 w-64" />
+        <Skeleton className="h-[400px] w-full" />
       </div>
     );
   }
 
-  if (error) {
+  if (!product) {
     return (
-      <div className="flex bg-card flex-col items-center justify-center h-screen gap-4">
-        <p className="text-destructive font-medium">{error}</p>
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <p className="text-red-600">Producto no encontrado</p>
         <Link href="/productos">
           <Button variant="outline">
-            {" "}
-            <ArrowLeft className="mr-2 h-4 w-4" /> Volver{" "}
+            <ArrowLeft className="mr-2 h-4 w-4" /> Volver
           </Button>
         </Link>
       </div>
@@ -134,116 +236,280 @@ const PageEditarProducto = () => {
   }
 
   return (
-    <div className="container max-w-2xl py-10 mx-auto">
-      <div className="mb-6">
-        <Link
-          href="/productos"
-          className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-1 mb-2 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" /> Volver a productos
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Link href="/productos">
+          <Button variant="outline" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Editar Producto
-        </h1>
-        <p className="text-muted-foreground">
-          Actualiza la información del producto.
-        </p>
+        <div>
+          <h1 className="text-3xl font-bold">Editar Producto</h1>
+          <p className="text-gray-500">{product.name}</p>
+        </div>
       </div>
 
-      <Card>
-        <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Información del Producto */}
+        <Card>
           <CardHeader>
             <CardTitle>Información del Producto</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre</Label>
-              <Input
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleProductChange("name", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoría *</Label>
+                <Input
+                  id="category"
+                  value={formData.category}
+                  onChange={(e) =>
+                    handleProductChange("category", e.target.value)
+                  }
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Descripción</Label>
-              <Input
+              <Textarea
                 id="description"
-                name="description"
                 value={formData.description}
-                onChange={handleChange}
+                onChange={(e) =>
+                  handleProductChange("description", e.target.value)
+                }
+                rows={3}
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="cost">Costo</Label>
-                <Input
-                  id="cost"
-                  name="cost"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.cost}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="price">Precio</Label>
-                <Input
-                  id="price"
-                  name="price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="stock">Stock</Label>
-              <Input
-                id="stock"
-                name="stock"
-                type="number"
-                min="0"
-                value={formData.stock}
-                onChange={handleChange}
-                required
+            <div className="flex items-center gap-2">
+              <Switch
+                id="active"
+                checked={formData.active}
+                onCheckedChange={(checked) =>
+                  handleProductChange("active", checked)
+                }
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="size">Tamaños (separados por coma)</Label>
-              <Input
-                id="size"
-                name="size"
-                placeholder="S, M, L, XL"
-                value={formData.size}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="color">Colores (separados por coma)</Label>
-              <Input
-                id="color"
-                name="color"
-                placeholder="Rojo, Azul, Negro"
-                value={formData.color}
-                onChange={handleChange}
-              />
+              <Label htmlFor="active">Producto activo</Label>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end gap-2">
+        </Card>
+
+        {/* Variantes */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Variantes</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Agregar nueva variante */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="space-y-2">
+                <Label>Color *</Label>
+                <Input
+                  value={newVariant.color}
+                  onChange={(e) => handleVariantChange("color", e.target.value)}
+                  placeholder="Ej: Blanco"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Talle *</Label>
+                <Input
+                  value={newVariant.size}
+                  onChange={(e) => handleVariantChange("size", e.target.value)}
+                  placeholder="Ej: M"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Costo</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newVariant.cost || ""}
+                  onChange={(e) =>
+                    handleVariantChange("cost", parseFloat(e.target.value) || 0)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Precio *</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newVariant.price || ""}
+                  onChange={(e) =>
+                    handleVariantChange(
+                      "price",
+                      parseFloat(e.target.value) || 0
+                    )
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Stock</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newVariant.stock || ""}
+                  onChange={(e) =>
+                    handleVariantChange(
+                      "stock",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Stock Mínimo</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newVariant.minStock || ""}
+                  onChange={(e) =>
+                    handleVariantChange(
+                      "minStock",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                />
+              </div>
+              <div className="md:col-span-2 flex items-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addNewVariant}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Variante
+                </Button>
+              </div>
+            </div>
+
+            {/* Tabla de variantes existentes */}
+            {variants.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Color</TableHead>
+                    <TableHead>Talle</TableHead>
+                    <TableHead>Costo</TableHead>
+                    <TableHead>Precio</TableHead>
+                    <TableHead>Ganancia</TableHead>
+                    <TableHead>Margen</TableHead>
+                    <TableHead>Stock</TableHead>
+                    <TableHead>Mín</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {variants.map((variant) => (
+                    <TableRow key={variant.id}>
+                      <TableCell>
+                        <Badge variant="outline">{variant.color}</Badge>
+                      </TableCell>
+                      <TableCell>{variant.size}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={variant.cost}
+                          onChange={(e) =>
+                            updateExistingVariant(
+                              variant.id,
+                              "cost",
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="w-24"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={variant.price}
+                          onChange={(e) =>
+                            updateExistingVariant(
+                              variant.id,
+                              "price",
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="w-24"
+                        />
+                      </TableCell>
+                      <TableCell className="text-green-600">
+                        {formatCurrency(
+                          calculateProfit(variant.price, variant.cost)
+                        )}
+                      </TableCell>
+                      <TableCell className="text-green-600">
+                        {calculateMargin(variant.price, variant.cost)}%
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={variant.stock}
+                          onChange={(e) =>
+                            updateExistingVariant(
+                              variant.id,
+                              "stock",
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          className="w-20"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={variant.minStock}
+                          onChange={(e) =>
+                            updateExistingVariant(
+                              variant.id,
+                              "minStock",
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          className="w-20"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeVariant(variant.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No hay variantes.
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="flex justify-between">
             <Link href="/productos">
-              <Button variant="ghost" type="button">
+              <Button variant="outline" type="button">
                 Cancelar
               </Button>
             </Link>
@@ -253,20 +519,39 @@ const PageEditarProducto = () => {
               className="bg-[#e5e5d0] text-black hover:bg-[#d8d8b9]"
             >
               {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...
-                </>
+                "Guardando..."
               ) : (
                 <>
-                  <Save className="mr-2 h-4 w-4" /> Guardar Cambios
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar Cambios
                 </>
               )}
             </Button>
           </CardFooter>
-        </form>
-      </Card>
+        </Card>
+      </form>
+
+      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-6 w-6 text-green-500" />
+              Cambios Guardados
+            </DialogTitle>
+            <DialogDescription>
+              El producto ha sido actualizado exitosamente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={() => router.push("/productos")}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default PageEditarProducto;
+}
