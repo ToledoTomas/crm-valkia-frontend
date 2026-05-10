@@ -74,6 +74,8 @@ export function ProductControlBar({
             aria-hidden="true"
           />
           <Input
+            type="search"
+            aria-label="Buscar productos"
             value={searchTerm}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Buscar por producto, color o talle"
