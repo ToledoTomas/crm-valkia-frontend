@@ -37,8 +37,10 @@ export function getProductStockState(product: EnrichedProduct): ProductStockStat
 export function getProductMarginState(product: EnrichedProduct): ProductMarginState {
   const variants = product.variants ?? [];
   if (variants.length === 0) return "sin-datos";
-  if (variants.some((variant) => getVariantMarginState(variant) === "riesgo")) return "riesgo";
-  if (variants.some((variant) => getVariantMarginState(variant) === "bajo")) return "bajo";
+  const marginStates = variants.map(getVariantMarginState);
+  if (marginStates.includes("riesgo")) return "riesgo";
+  if (marginStates.includes("bajo")) return "bajo";
+  if (marginStates.includes("sin-datos")) return "sin-datos";
   return "ok";
 }
 
