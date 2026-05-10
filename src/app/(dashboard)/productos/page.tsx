@@ -135,6 +135,8 @@ export default function ProductosPage() {
     if (!productToDelete) return;
 
     try {
+      requestIdRef.current += 1;
+      setIsLoading(false);
       setIsDeleting(true);
       await deleteProduct(productToDelete.id);
       setProducts((currentProducts) =>

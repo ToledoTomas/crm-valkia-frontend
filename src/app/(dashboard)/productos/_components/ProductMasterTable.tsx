@@ -74,19 +74,11 @@ function stopRowSelection(event: MouseEvent | KeyboardEvent) {
   event.stopPropagation();
 }
 
-function isFromInteractiveElement(event: MouseEvent | KeyboardEvent) {
-  const target = event.target;
-  return target instanceof HTMLElement
-    ? Boolean(target.closest("a, button, input, select, textarea, [role='button']"))
-    : false;
-}
-
 function handleSelectableKeyDown(
   event: KeyboardEvent,
   product: EnrichedProduct,
   onSelectProduct: (product: EnrichedProduct) => void
 ) {
-  if (isFromInteractiveElement(event)) return;
   if (event.key !== "Enter" && event.key !== " ") return;
   event.preventDefault();
   onSelectProduct(product);
@@ -260,29 +252,30 @@ function ProductDesktopRow({
 
   return (
     <TableRow
-      tabIndex={0}
-      role="button"
-      aria-label={`Ver detalle de ${product.name}`}
-      aria-pressed={isSelected}
       data-state={isSelected ? "selected" : undefined}
       className={cn(
-        "cursor-pointer border-[#efe3d3] outline-none transition-colors hover:bg-[#fff6ea] focus-visible:bg-[#fff6ea] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#c9894b]",
+        "cursor-pointer border-[#efe3d3] transition-colors hover:bg-[#fff6ea]",
         isSelected && "bg-[#f8ecdc] hover:bg-[#f8ecdc]"
       )}
-      onClick={(event) => {
-        if (!isFromInteractiveElement(event)) {
-          onSelectProduct(product);
-        }
-      }}
-      onKeyDown={(event) => handleSelectableKeyDown(event, product, onSelectProduct)}
+      onClick={() => onSelectProduct(product)}
     >
       <TableCell className="px-4 py-4">
-        <div className="max-w-[260px]">
+        <button
+          type="button"
+          className="max-w-[260px] text-left outline-none focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-[#c9894b]"
+          aria-label={`Ver detalle de ${product.name}`}
+          aria-pressed={isSelected}
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectProduct(product);
+          }}
+          onKeyDown={(event) => handleSelectableKeyDown(event, product, onSelectProduct)}
+        >
           <p className="truncate font-semibold text-[#3f2f22]">{product.name}</p>
           <p className="mt-1 truncate text-xs text-[#9a8064]">
             {product.description?.trim() || "Sin descripcion"}
           </p>
-        </div>
+        </button>
       </TableCell>
       <TableCell className="px-4 py-4 text-[#6f5438]">
         {product.category || "Sin categoria"}
