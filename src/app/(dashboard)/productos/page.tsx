@@ -1,22 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, ChevronDown, ChevronUp, Edit2, Trash2, Search as SearchIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, Boxes, Layers3, Plus, RefreshCw, Siren } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -25,42 +14,100 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import type { EnrichedProduct } from "@/types/product";
 
-import { getProducts, searchProducts, deleteProduct } from "./api";
-import { EnrichedProduct, EnrichedVariant } from "@/types/product";
+import { ProductControlBar } from "./_components/ProductControlBar";
+import { ProductDetailPanel } from "./_components/ProductDetailPanel";
+import { ProductMasterTable } from "./_components/ProductMasterTable";
+import {
+  filterProducts,
+  getCatalogSummary,
+  getProductCategories,
+  sortProductsForAudit,
+  type ProductAuditFilters,
+} from "./_lib/product-audit";
+import { deleteProduct, getProducts, searchProducts } from "./api";
+
+const initialFilters: ProductAuditFilters = {
+  category: "all",
+  state: "all",
+  stock: "all",
+  margin: "all",
+};
+
+function hasActiveFilters(filters: ProductAuditFilters) {
+  return (
+    filters.category !== "all" ||
+    filters.state !== "all" ||
+    filters.stock !== "all" ||
+    filters.margin !== "all"
+  );
+}
+
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Boxes;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-3xl border border-[#eadfce] bg-white/70 px-4 py-3 shadow-[0_14px_40px_rgba(88,60,32,0.05)]">
+      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#a7835d]">
+        <Icon className="h-4 w-4" aria-hidden="true" />
+        {label}
+      </div>
+      <p className="mt-2 text-2xl font-semibold text-[#3f2f22]">{value}</p>
+    </div>
+  );
+}
 
 export default function ProductosPage() {
   const [products, setProducts] = useState<EnrichedProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [expandedProduct, setExpandedProduct] = useState<number | null>(null);
+  const [filters, setFilters] = useState<ProductAuditFilters>(initialFilters);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<EnrichedProduct | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const didMountSearchEffect = useRef(false);
 
-  const fetchProducts = React.useCallback(async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setIsLoading(true);
+      setLoadError(null);
       const result = await getProducts();
       setProducts(result.data);
-    } catch (error) {
-      toast.error("Error al cargar productos");
+    } catch {
+      const message = "No se pudo cargar el catalogo.";
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const handleSearch = React.useCallback(
+  const handleSearch = useCallback(
     async (term: string) => {
       try {
         setIsLoading(true);
+        setLoadError(null);
+
         if (term.trim() === "") {
           await fetchProducts();
-        } else {
-          const result = await searchProducts(term);
-          setProducts(result);
+          return;
         }
-      } catch (error) {
-        toast.error("Error al buscar productos");
+
+        const result = await searchProducts(term);
+        setProducts(result);
+      } catch {
+        const message = "No se pudo buscar productos.";
+        setLoadError(message);
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
@@ -70,14 +117,19 @@ export default function ProductosPage() {
 
   const handleDelete = async () => {
     if (!productToDelete) return;
-    
+
     try {
       setIsDeleting(true);
       await deleteProduct(productToDelete.id);
-      setProducts(products.filter((p) => p.id !== productToDelete.id));
+      setProducts((currentProducts) =>
+        currentProducts.filter((product) => product.id !== productToDelete.id)
+      );
+      setSelectedProductId((currentId) =>
+        currentId === productToDelete.id ? null : currentId
+      );
       toast.success("Producto eliminado correctamente");
       setProductToDelete(null);
-    } catch (error) {
+    } catch {
       toast.error("Error al eliminar el producto");
     } finally {
       setIsDeleting(false);
@@ -89,199 +141,151 @@ export default function ProductosPage() {
   }, [fetchProducts]);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
+    if (!didMountSearchEffect.current) {
+      didMountSearchEffect.current = true;
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
       handleSearch(searchTerm);
     }, 500);
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, handleSearch]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("es-AR", {
-      style: "currency",
-      currency: "ARS",
-    }).format(value);
+    return () => window.clearTimeout(timeoutId);
+  }, [handleSearch, searchTerm]);
+
+  const categories = useMemo(() => getProductCategories(products), [products]);
+
+  const visibleProducts = useMemo(
+    () => sortProductsForAudit(filterProducts(products, filters)),
+    [filters, products]
+  );
+
+  const selectedProduct = useMemo(
+    () =>
+      visibleProducts.find((product) => product.id === selectedProductId) ??
+      visibleProducts[0] ??
+      null,
+    [selectedProductId, visibleProducts]
+  );
+
+  const summary = useMemo(() => getCatalogSummary(visibleProducts), [visibleProducts]);
+  const hasSearchOrFilters = searchTerm.trim() !== "" || hasActiveFilters(filters);
+
+  const handleSelectProduct = (product: EnrichedProduct) => {
+    setSelectedProductId(product.id);
+    setIsMobileDetailOpen(true);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold">Productos</h1>
-          <p className="text-gray-500">Gestiona tu catálogo de productos y variantes</p>
-        </div>
-        <Link href="/productos/agregar-productos">
-          <Button className="bg-[#e5e5d0] hover:bg-[#d8d8b9] text-black">
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Producto
-          </Button>
-        </Link>
-      </div>
-
-      <div className="relative">
-        <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input
-          placeholder="Buscar productos..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      <div className="bg-white rounded-lg border border-gray-200">
-        {isLoading ? (
-          <div className="p-4 space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
+    <div className="min-w-0 space-y-6">
+      <header className="overflow-hidden rounded-[2.5rem] border border-[#eadfce] bg-[#fffaf2] shadow-[0_24px_80px_rgba(88,60,32,0.1)]">
+        <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:p-7">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b28b61]">
+              Atelier operativo
+            </p>
+            <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h1 className="text-4xl font-semibold tracking-[-0.04em] text-[#2f241b] md:text-5xl">
+                  Productos
+                </h1>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#7f654c]">
+                  Controla catalogo, stock, variantes y margenes desde una vista de
+                  lectura rapida.
+                </p>
+              </div>
+              <Button
+                asChild
+                className="w-full rounded-2xl bg-[#6f5438] text-white hover:bg-[#5e422b] sm:w-auto"
+              >
+                <Link href="/productos/agregar-productos">
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Nuevo producto
+                </Link>
+              </Button>
+            </div>
           </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Producto</TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead>Stock Total</TableHead>
-                <TableHead>Variantes</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                    No hay productos. Crea tu primer producto para comenzar.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                products.map((product) => (
-                  <React.Fragment key={product.id}>
-                    <TableRow className="cursor-pointer hover:bg-gray-50">
-                      <TableCell
-                        onClick={() =>
-                          setExpandedProduct(expandedProduct === product.id ? null : product.id)
-                        }
-                        className="font-medium"
-                      >
-                        <div className="flex items-center gap-2">
-                          {expandedProduct === product.id ? (
-                            <ChevronUp className="h-4 w-4 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4 text-gray-400" />
-                          )}
-                          {product.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{product.category}</TableCell>
-                      <TableCell>
-                        <span
-                          className={
-                            product.totalStock === 0
-                              ? "text-red-600 font-medium"
-                              : product.totalStock < 10
-                              ? "text-yellow-600 font-medium"
-                              : "text-green-600 font-medium"
-                          }
-                        >
-                          {product.totalStock}
-                        </span>
-                      </TableCell>
-                      <TableCell>{product.variants?.length || 0}</TableCell>
-                      <TableCell>
-                        <Badge variant={product.active ? "default" : "secondary"}>
-                          {product.active ? "Activo" : "Inactivo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/productos/editar-productos?id=${product.id}`}>
-                            <Button variant="ghost" size="icon">
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setProductToDelete(product)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    {expandedProduct === product.id && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="bg-gray-50">
-                          <div className="py-2">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Color</TableHead>
-                                  <TableHead>Talle</TableHead>
-                                  <TableHead>Costo</TableHead>
-                                  <TableHead>Precio</TableHead>
-                                  <TableHead>Ganancia</TableHead>
-                                  <TableHead>Margen</TableHead>
-                                  <TableHead>Stock</TableHead>
-                                  <TableHead>Mínimo</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {product.variants?.map((variant: EnrichedVariant) => (
-                                  <TableRow key={variant.id}>
-                                    <TableCell>
-                                      <Badge variant="outline">{variant.color}</Badge>
-                                    </TableCell>
-                                    <TableCell>{variant.size}</TableCell>
-                                    <TableCell>{formatCurrency(variant.cost)}</TableCell>
-                                    <TableCell>{formatCurrency(variant.price)}</TableCell>
-                                    <TableCell className="text-green-600">
-                                      {formatCurrency(variant.ganancia)}
-                                    </TableCell>
-                                    <TableCell className="text-green-600">
-                                      {variant.margen}%
-                                    </TableCell>
-                                    <TableCell>
-                                      <span
-                                        className={
-                                          variant.stock <= variant.minStock
-                                            ? "text-red-600 font-medium"
-                                            : "text-green-600 font-medium"
-                                        }
-                                      >
-                                        {variant.stock}
-                                      </span>
-                                    </TableCell>
-                                    <TableCell>{variant.minStock}</TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        )}
-      </div>
 
-      <Dialog open={!!productToDelete} onOpenChange={() => setProductToDelete(null)}>
+          <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4 lg:w-[520px]">
+            <SummaryCard icon={Boxes} label="Productos" value={summary.totalProducts} />
+            <SummaryCard icon={Layers3} label="Variantes" value={summary.totalVariants} />
+            <SummaryCard icon={Siren} label="Atencion" value={summary.attentionCount} />
+            <SummaryCard icon={AlertCircle} label="Stock bajo" value={summary.lowStockCount} />
+          </div>
+        </div>
+      </header>
+
+      <ProductControlBar
+        searchTerm={searchTerm}
+        filters={filters}
+        categories={categories}
+        onSearchChange={setSearchTerm}
+        onFiltersChange={setFilters}
+      />
+
+      {loadError ? (
+        <div className="flex flex-col gap-3 rounded-3xl border border-[#e8b9a7] bg-[#fff1ea] px-4 py-3 text-sm text-[#842f16] shadow-[0_14px_40px_rgba(132,47,22,0.08)] sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{loadError}</span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-2xl border-[#e8b9a7] bg-white/70 text-[#842f16] hover:bg-[#ffe6dc]"
+            onClick={fetchProducts}
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            Reintentar
+          </Button>
+        </div>
+      ) : null}
+
+      <main className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-start">
+        <section className="min-w-0 flex-1">
+          <ProductMasterTable
+            products={visibleProducts}
+            selectedProductId={selectedProduct?.id ?? null}
+            isLoading={isLoading}
+            hasSearchOrFilters={hasSearchOrFilters}
+            onSelectProduct={handleSelectProduct}
+            onDeleteProduct={setProductToDelete}
+          />
+        </section>
+
+        <ProductDetailPanel
+          product={selectedProduct}
+          isMobileOpen={isMobileDetailOpen}
+          onMobileOpenChange={setIsMobileDetailOpen}
+        />
+      </main>
+
+      <Dialog
+        open={Boolean(productToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setProductToDelete(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>¿Eliminar producto?</DialogTitle>
+            <DialogTitle>Eliminar producto?</DialogTitle>
             <DialogDescription>
-              Estás a punto de eliminar &quot;{productToDelete?.name}&quot;. Esta acción no se puede deshacer.
+              Estas por eliminar &quot;{productToDelete?.name}&quot;. Esta accion no se puede
+              deshacer.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setProductToDelete(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setProductToDelete(null)}
+              disabled={isDeleting}
+            >
               Cancelar
             </Button>
             <Button
+              type="button"
               variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
