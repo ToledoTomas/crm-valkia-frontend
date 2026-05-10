@@ -74,45 +74,61 @@ export default function ProductosPage() {
   const [productToDelete, setProductToDelete] = useState<EnrichedProduct | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
   const didMountSearchEffect = useRef(false);
 
   const fetchProducts = useCallback(async () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
     try {
       setIsLoading(true);
       setLoadError(null);
       const result = await getProducts();
+      if (requestIdRef.current !== requestId) return;
       setProducts(result.data);
     } catch {
+      if (requestIdRef.current !== requestId) return;
       const message = "No se pudo cargar el catalogo.";
       setLoadError(message);
       toast.error(message);
     } finally {
-      setIsLoading(false);
+      if (requestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   const handleSearch = useCallback(
     async (term: string) => {
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
+
       try {
         setIsLoading(true);
         setLoadError(null);
 
         if (term.trim() === "") {
-          await fetchProducts();
-          return;
+          const result = await getProducts();
+          if (requestIdRef.current !== requestId) return;
+          setProducts(result.data);
+        } else {
+          const result = await searchProducts(term);
+          if (requestIdRef.current !== requestId) return;
+          setProducts(result);
         }
-
-        const result = await searchProducts(term);
-        setProducts(result);
       } catch {
+        if (requestIdRef.current !== requestId) return;
         const message = "No se pudo buscar productos.";
         setLoadError(message);
         toast.error(message);
       } finally {
-        setIsLoading(false);
+        if (requestIdRef.current === requestId) {
+          setIsLoading(false);
+        }
       }
     },
-    [fetchProducts]
+    []
   );
 
   const handleDelete = async () => {
@@ -176,6 +192,16 @@ export default function ProductosPage() {
     setIsMobileDetailOpen(true);
   };
 
+  const retryLastRequest = () => {
+    const term = searchTerm.trim();
+    if (term) {
+      void handleSearch(term);
+      return;
+    }
+
+    void fetchProducts();
+  };
+
   return (
     <div className="min-w-0 space-y-6">
       <header className="overflow-hidden rounded-[2.5rem] border border-[#eadfce] bg-[#fffaf2] shadow-[0_24px_80px_rgba(88,60,32,0.1)]">
@@ -234,7 +260,7 @@ export default function ProductosPage() {
             variant="outline"
             size="sm"
             className="rounded-2xl border-[#e8b9a7] bg-white/70 text-[#842f16] hover:bg-[#ffe6dc]"
-            onClick={fetchProducts}
+            onClick={retryLastRequest}
           >
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Reintentar
@@ -269,9 +295,9 @@ export default function ProductosPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Eliminar producto?</DialogTitle>
+            <DialogTitle>¿Eliminar producto?</DialogTitle>
             <DialogDescription>
-              Estas por eliminar &quot;{productToDelete?.name}&quot;. Esta accion no se puede
+              Estás por eliminar &quot;{productToDelete?.name}&quot;. Esta acción no se puede
               deshacer.
             </DialogDescription>
           </DialogHeader>

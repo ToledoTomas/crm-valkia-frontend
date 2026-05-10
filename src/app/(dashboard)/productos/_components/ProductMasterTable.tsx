@@ -114,8 +114,8 @@ function EmptyState({ hasSearchOrFilters }: { hasSearchOrFilters: boolean }) {
 
 function DesktopSkeleton() {
   return (
-    <div className="hidden overflow-hidden rounded-[2rem] border border-[#eadfce] bg-[#fffaf2] shadow-[0_18px_60px_rgba(88,60,32,0.08)] lg:block">
-      <Table>
+    <div className="hidden overflow-x-auto rounded-[2rem] border border-[#eadfce] bg-[#fffaf2] shadow-[0_18px_60px_rgba(88,60,32,0.08)] lg:block">
+      <Table className="min-w-[980px]">
         <TableHeader>
           <TableRow className="border-[#eadfce] hover:bg-transparent">
             {["Producto", "Categoria", "Stock", "Variantes", "Precio", "Margen", "Estado", ""].map(
@@ -424,8 +424,8 @@ export function ProductMasterTable({
 
   return (
     <>
-      <div className="hidden overflow-hidden rounded-[2rem] border border-[#eadfce] bg-[#fffaf2] shadow-[0_18px_60px_rgba(88,60,32,0.08)] lg:block">
-        <Table>
+      <div className="hidden overflow-x-auto rounded-[2rem] border border-[#eadfce] bg-[#fffaf2] shadow-[0_18px_60px_rgba(88,60,32,0.08)] lg:block">
+        <Table className="min-w-[980px]">
           <TableHeader>
             <TableRow className="border-[#eadfce] bg-[#f8ecdc] hover:bg-[#f8ecdc]">
               <TableHead className="px-4 py-4 text-[#7a4d24]">Producto</TableHead>
