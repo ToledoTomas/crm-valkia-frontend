@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Boxes,
@@ -336,11 +337,35 @@ function PanelBody({ product }: { product: EnrichedProduct | null }) {
   return product ? <ProductContent product={product} /> : <EmptyState />;
 }
 
+function useIsMobileDetailViewport() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1023px)");
+    const handleChange = () => setIsMobile(mediaQuery.matches);
+
+    handleChange();
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  return isMobile;
+}
+
 export function ProductDetailPanel({
   product,
   isMobileOpen,
   onMobileOpenChange,
 }: ProductDetailPanelProps) {
+  const isMobileViewport = useIsMobileDetailViewport();
+
+  useEffect(() => {
+    if (!isMobileViewport && isMobileOpen) {
+      onMobileOpenChange(false);
+    }
+  }, [isMobileOpen, isMobileViewport, onMobileOpenChange]);
+
   return (
     <>
       <aside className="hidden lg:block lg:w-[380px] lg:shrink-0">
@@ -349,24 +374,26 @@ export function ProductDetailPanel({
         </div>
       </aside>
 
-      <Sheet open={isMobileOpen} onOpenChange={onMobileOpenChange}>
-        <SheetContent
-          side="bottom"
-          className="max-h-[88vh] overflow-y-auto rounded-t-[2rem] border-[#eadfce] bg-[#fffaf2] p-0 lg:hidden"
-        >
-          <SheetHeader className="border-b border-[#eadfce] px-5 py-4 text-left">
-            <SheetTitle className="pr-8 text-[#3f2f22]">
-              {product ? product.name : "Detalle de producto"}
-            </SheetTitle>
-            <SheetDescription className="text-[#8d7258]">
-              Vista de lectura para stock, margen y variantes.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6">
-            <PanelBody product={product} />
-          </div>
-        </SheetContent>
-      </Sheet>
+      {isMobileViewport ? (
+        <Sheet open={isMobileOpen} onOpenChange={onMobileOpenChange}>
+          <SheetContent
+            side="bottom"
+            className="max-h-[88vh] overflow-y-auto rounded-t-[2rem] border-[#eadfce] bg-[#fffaf2] p-0"
+          >
+            <SheetHeader className="border-b border-[#eadfce] px-5 py-4 text-left">
+              <SheetTitle className="pr-8 text-[#3f2f22]">
+                {product ? product.name : "Detalle de producto"}
+              </SheetTitle>
+              <SheetDescription className="text-[#8d7258]">
+                Vista de lectura para stock, margen y variantes.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="px-4 pb-6">
+              <PanelBody product={product} />
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : null}
     </>
   );
 }
