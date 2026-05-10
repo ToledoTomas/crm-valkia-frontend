@@ -70,15 +70,23 @@ const marginCopy: Record<ProductMarginState, { label: string; className: string 
   },
 };
 
-function stopRowSelection(event: MouseEvent) {
+function stopRowSelection(event: MouseEvent | KeyboardEvent) {
   event.stopPropagation();
 }
 
-function handleSelectableRowKeyDown(
-  event: KeyboardEvent<HTMLTableRowElement>,
+function isFromInteractiveElement(event: MouseEvent | KeyboardEvent) {
+  const target = event.target;
+  return target instanceof HTMLElement
+    ? Boolean(target.closest("a, button, input, select, textarea, [role='button']"))
+    : false;
+}
+
+function handleSelectableKeyDown(
+  event: KeyboardEvent,
   product: EnrichedProduct,
   onSelectProduct: (product: EnrichedProduct) => void
 ) {
+  if (isFromInteractiveElement(event)) return;
   if (event.key !== "Enter" && event.key !== " ") return;
   event.preventDefault();
   onSelectProduct(product);
@@ -213,6 +221,7 @@ function ProductActions({
           href={`/productos/editar-productos?id=${product.id}`}
           aria-label={`Editar ${product.name}`}
           onClick={stopRowSelection}
+          onKeyDown={stopRowSelection}
         >
           <Pencil className="h-4 w-4" aria-hidden="true" />
         </Link>
@@ -252,14 +261,20 @@ function ProductDesktopRow({
   return (
     <TableRow
       tabIndex={0}
-      aria-selected={isSelected}
+      role="button"
+      aria-label={`Ver detalle de ${product.name}`}
+      aria-pressed={isSelected}
       data-state={isSelected ? "selected" : undefined}
       className={cn(
         "cursor-pointer border-[#efe3d3] outline-none transition-colors hover:bg-[#fff6ea] focus-visible:bg-[#fff6ea] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#c9894b]",
         isSelected && "bg-[#f8ecdc] hover:bg-[#f8ecdc]"
       )}
-      onClick={() => onSelectProduct(product)}
-      onKeyDown={(event) => handleSelectableRowKeyDown(event, product, onSelectProduct)}
+      onClick={(event) => {
+        if (!isFromInteractiveElement(event)) {
+          onSelectProduct(product);
+        }
+      }}
+      onKeyDown={(event) => handleSelectableKeyDown(event, product, onSelectProduct)}
     >
       <TableCell className="px-4 py-4">
         <div className="max-w-[260px]">
@@ -324,11 +339,14 @@ function ProductMobileCard({
         isSelected ? "border-[#c9894b] bg-[#f8ecdc]" : "border-[#eadfce]"
       )}
     >
-      <button
-        type="button"
-        className="w-full text-left outline-none focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-[#c9894b]"
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={`Ver detalle de ${product.name}`}
         aria-pressed={isSelected}
+        className="w-full text-left outline-none focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-[#c9894b]"
         onClick={() => onSelectProduct(product)}
+        onKeyDown={(event) => handleSelectableKeyDown(event, product, onSelectProduct)}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -374,7 +392,7 @@ function ProductMobileCard({
             {getProductMarginRange(product)} / {marginCopy[marginState].label}
           </Badge>
         </div>
-      </button>
+      </div>
 
       <div className="mt-4 border-t border-[#eadfce] pt-3">
         <ProductActions product={product} onDeleteProduct={onDeleteProduct} />
@@ -412,7 +430,7 @@ export function ProductMasterTable({
             <TableRow className="border-[#eadfce] bg-[#f8ecdc] hover:bg-[#f8ecdc]">
               <TableHead className="px-4 py-4 text-[#7a4d24]">Producto</TableHead>
               <TableHead className="px-4 py-4 text-[#7a4d24]">Categoria</TableHead>
-              <TableHead className="px-4 py-4 text-[#7a4d24]">Stock health</TableHead>
+              <TableHead className="px-4 py-4 text-[#7a4d24]">Stock</TableHead>
               <TableHead className="px-4 py-4 text-[#7a4d24]">Variantes</TableHead>
               <TableHead className="px-4 py-4 text-[#7a4d24]">Precio</TableHead>
               <TableHead className="px-4 py-4 text-[#7a4d24]">Margen</TableHead>
