@@ -75,6 +75,7 @@ export default function ProductosPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+  const deletedProductIdsRef = useRef(new Set<number>());
   const didMountSearchEffect = useRef(false);
 
   const fetchProducts = useCallback(async () => {
@@ -86,7 +87,9 @@ export default function ProductosPage() {
       setLoadError(null);
       const result = await getProducts();
       if (requestIdRef.current !== requestId) return;
-      setProducts(result.data);
+      setProducts(
+        result.data.filter((product) => !deletedProductIdsRef.current.has(product.id))
+      );
     } catch {
       if (requestIdRef.current !== requestId) return;
       const message = "No se pudo cargar el catalogo.";
@@ -111,11 +114,15 @@ export default function ProductosPage() {
         if (term.trim() === "") {
           const result = await getProducts();
           if (requestIdRef.current !== requestId) return;
-          setProducts(result.data);
+          setProducts(
+            result.data.filter((product) => !deletedProductIdsRef.current.has(product.id))
+          );
         } else {
           const result = await searchProducts(term);
           if (requestIdRef.current !== requestId) return;
-          setProducts(result);
+          setProducts(
+            result.filter((product) => !deletedProductIdsRef.current.has(product.id))
+          );
         }
       } catch {
         if (requestIdRef.current !== requestId) return;
@@ -139,6 +146,8 @@ export default function ProductosPage() {
       setIsLoading(false);
       setIsDeleting(true);
       await deleteProduct(productToDelete.id);
+      deletedProductIdsRef.current.add(productToDelete.id);
+      requestIdRef.current += 1;
       setProducts((currentProducts) =>
         currentProducts.filter((product) => product.id !== productToDelete.id)
       );
