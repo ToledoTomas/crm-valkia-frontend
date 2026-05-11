@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ArrowLeft, Save, CheckCircle } from "lucide-react";
+import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -18,14 +19,6 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Table,
   TableBody,
   TableCell,
@@ -33,39 +26,44 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 
 import { createProduct } from "../../api";
 import { CreateProductVariantDto } from "@/types/product";
-import Link from "next/link";
 
 interface VariantFormData extends CreateProductVariantDto {
   id?: number;
 }
 
+const emptyVariant: VariantFormData = {
+  color: "",
+  size: "",
+  cost: 0,
+  price: 0,
+  stock: 0,
+  minStock: 0,
+};
+
 export default function ProductForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  // Datos del producto
   const [formData, setFormData] = useState({
     name: "",
     category: "",
     description: "",
     active: true,
   });
-
-  // Variantes
   const [variants, setVariants] = useState<VariantFormData[]>([]);
-  const [newVariant, setNewVariant] = useState<VariantFormData>({
-    color: "",
-    size: "",
-    cost: 0,
-    price: 0,
-    stock: 0,
-    minStock: 0,
-  });
+  const [newVariant, setNewVariant] = useState<VariantFormData>(emptyVariant);
+
+  const toNumber = (value: string) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const toInteger = (value: string) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
 
   const handleProductChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -75,42 +73,33 @@ export default function ProductForm() {
     setNewVariant((prev) => ({ ...prev, [field]: value }));
   };
 
-  const calculateProfit = (price: number, cost: number) => {
-    return price - cost;
-  };
-
-  const calculateMargin = (price: number, cost: number) => {
-    if (price === 0) return 0;
-    return Math.round(((price - cost) / price) * 100);
-  };
-
   const addVariant = () => {
-    if (!newVariant.color || !newVariant.size) {
-      toast.error("El color y talle son obligatorios");
+    if (!newVariant.color.trim() || !newVariant.size.trim()) {
+      toast.error("Color y talle son obligatorios");
       return;
     }
-    if (newVariant.price <= 0) {
-      toast.error("El precio debe ser mayor a 0");
+
+    if (newVariant.stock < 0 || (newVariant.minStock ?? 0) < 0) {
+      toast.error("El stock no puede ser negativo");
+      return;
+    }
+
+    if (newVariant.price < 0) {
+      toast.error("El precio no puede ser negativo");
       return;
     }
 
     const duplicate = variants.find(
       (v) => v.color === newVariant.color && v.size === newVariant.size
     );
+
     if (duplicate) {
       toast.error("Ya existe una variante con este color y talle");
       return;
     }
 
     setVariants([...variants, { ...newVariant }]);
-    setNewVariant({
-      color: "",
-      size: "",
-      cost: 0,
-      price: 0,
-      stock: 0,
-      minStock: 0,
-    });
+    setNewVariant({ ...emptyVariant });
     toast.success("Variante agregada");
   };
 
@@ -122,8 +111,8 @@ export default function ProductForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.category) {
-      toast.error("El nombre y categoría son obligatorios");
+    if (!formData.name.trim() || !formData.category.trim()) {
+      toast.error("El nombre y categoria son obligatorios");
       return;
     }
 
@@ -139,8 +128,9 @@ export default function ProductForm() {
         ...formData,
         variants,
       });
-      setShowSuccess(true);
-    } catch (error) {
+      toast.success("Producto creado");
+      router.push("/productos");
+    } catch {
       toast.error("Error al crear el producto");
     } finally {
       setIsLoading(false);
@@ -151,62 +141,60 @@ export default function ProductForm() {
     return new Intl.NumberFormat("es-AR", {
       style: "currency",
       currency: "ARS",
+      maximumFractionDigits: 0,
     }).format(value);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/productos">
-          <Button variant="outline" size="icon">
-            <ArrowLeft className="h-4 w-4" />
+    <div className="mx-auto max-w-5xl space-y-5">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <Button asChild variant="outline" size="icon" className="h-10 w-10 rounded-xl">
+            <Link href="/productos" aria-label="Volver a productos">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
           </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold">Nuevo Producto</h1>
-          <p className="text-gray-500">Crea un producto con sus variantes</p>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Nuevo producto</h1>
+            <p className="text-sm text-muted-foreground">Carga datos basicos y stock inicial.</p>
+          </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Información del Producto */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Información del Producto</CardTitle>
+        <Card className="rounded-2xl border-border shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Datos del producto</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Nombre *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleProductChange("name", e.target.value)}
-                  placeholder="Ej: Remera Básica"
+                  placeholder="Ej: Remera basica"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="category">Categoría *</Label>
+                <Label htmlFor="category">Categoria *</Label>
                 <Input
                   id="category"
                   value={formData.category}
-                  onChange={(e) =>
-                    handleProductChange("category", e.target.value)
-                  }
-                  placeholder="Ej: Ropa, Accesorios"
+                  onChange={(e) => handleProductChange("category", e.target.value)}
+                  placeholder="Ej: Remeras"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Descripción</Label>
+              <Label htmlFor="description">Descripcion</Label>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) =>
-                  handleProductChange("description", e.target.value)
-                }
-                placeholder="Descripción del producto..."
+                onChange={(e) => handleProductChange("description", e.target.value)}
+                placeholder="Descripcion breve del producto"
                 rows={3}
               />
             </div>
@@ -215,29 +203,24 @@ export default function ProductForm() {
               <Switch
                 id="active"
                 checked={formData.active}
-                onCheckedChange={(checked) =>
-                  handleProductChange("active", checked)
-                }
+                onCheckedChange={(checked) => handleProductChange("active", checked)}
               />
               <Label htmlFor="active">Producto activo</Label>
             </div>
           </CardContent>
         </Card>
 
-        {/* Variantes */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Variantes</CardTitle>
+        <Card className="rounded-2xl border-border shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Variantes y stock</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 gap-4 rounded-xl border border-border bg-muted/20 p-4 md:grid-cols-2 lg:grid-cols-5">
               <div className="space-y-2">
                 <Label>Color *</Label>
                 <Input
                   value={newVariant.color}
-                  onChange={(e) =>
-                    handleVariantChange("color", e.target.value)
-                  }
+                  onChange={(e) => handleVariantChange("color", e.target.value)}
                   placeholder="Ej: Blanco"
                 />
               </div>
@@ -250,73 +233,36 @@ export default function ProductForm() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Costo</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={newVariant.cost || ""}
-                  onChange={(e) =>
-                    handleVariantChange("cost", parseFloat(e.target.value) || 0)
-                  }
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Precio *</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={newVariant.price || ""}
-                  onChange={(e) =>
-                    handleVariantChange(
-                      "price",
-                      parseFloat(e.target.value) || 0
-                    )
-                  }
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="space-y-2">
                 <Label>Stock</Label>
                 <Input
                   type="number"
-                  min="0"
                   value={newVariant.stock || ""}
-                  onChange={(e) =>
-                    handleVariantChange(
-                      "stock",
-                      parseInt(e.target.value) || 0
-                    )
-                  }
+                  onChange={(e) => handleVariantChange("stock", toInteger(e.target.value))}
                   placeholder="0"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Stock Mínimo</Label>
+                <Label>Stock minimo</Label>
                 <Input
                   type="number"
-                  min="0"
                   value={newVariant.minStock || ""}
-                  onChange={(e) =>
-                    handleVariantChange(
-                      "minStock",
-                      parseInt(e.target.value) || 0
-                    )
-                  }
+                  onChange={(e) => handleVariantChange("minStock", toInteger(e.target.value))}
                   placeholder="0"
                 />
               </div>
-              <div className="md:col-span-2 lg:col-span-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addVariant}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Variante
+              <div className="space-y-2">
+                <Label>Precio</Label>
+                <Input
+                  type="number"
+                  value={newVariant.price || ""}
+                  onChange={(e) => handleVariantChange("price", toNumber(e.target.value))}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="md:col-span-2 lg:col-span-5">
+                <Button type="button" variant="outline" onClick={addVariant} className="w-full rounded-xl">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Agregar variante
                 </Button>
               </div>
             </div>
@@ -327,41 +273,22 @@ export default function ProductForm() {
                   <TableRow>
                     <TableHead>Color</TableHead>
                     <TableHead>Talle</TableHead>
-                    <TableHead>Costo</TableHead>
-                    <TableHead>Precio</TableHead>
-                    <TableHead>Ganancia</TableHead>
-                    <TableHead>Margen</TableHead>
                     <TableHead>Stock</TableHead>
-                    <TableHead>Mín</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead>Minimo</TableHead>
+                    <TableHead>Precio</TableHead>
+                    <TableHead className="w-[50px]">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {variants.map((variant, index) => (
                     <TableRow key={index}>
-                      <TableCell>
-                        <Badge variant="outline">{variant.color}</Badge>
-                      </TableCell>
+                      <TableCell>{variant.color}</TableCell>
                       <TableCell>{variant.size}</TableCell>
-                      <TableCell>{formatCurrency(variant.cost)}</TableCell>
-                      <TableCell>{formatCurrency(variant.price)}</TableCell>
-                      <TableCell className="text-green-600">
-                        {formatCurrency(
-                          calculateProfit(variant.price, variant.cost)
-                        )}
-                      </TableCell>
-                      <TableCell className="text-green-600">
-                        {calculateMargin(variant.price, variant.cost)}%
-                      </TableCell>
                       <TableCell>{variant.stock}</TableCell>
                       <TableCell>{variant.minStock}</TableCell>
+                      <TableCell>{formatCurrency(variant.price)}</TableCell>
                       <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeVariant(index)}
-                        >
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeVariant(index)}>
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </TableCell>
@@ -370,7 +297,7 @@ export default function ProductForm() {
                 </TableBody>
               </Table>
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="py-8 text-center text-muted-foreground">
                 No hay variantes. Agrega al menos una para continuar.
               </div>
             )}
@@ -381,45 +308,19 @@ export default function ProductForm() {
                 Cancelar
               </Button>
             </Link>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-[#e5e5d0] text-black hover:bg-[#d8d8b9]"
-            >
+            <Button type="submit" disabled={isLoading} className="rounded-xl">
               {isLoading ? (
                 "Guardando..."
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Guardar Producto
+                  <Save className="mr-2 h-4 w-4" />
+                  Guardar producto
                 </>
               )}
             </Button>
           </CardFooter>
         </Card>
       </form>
-
-      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-6 w-6 text-green-500" />
-              Producto Creado
-            </DialogTitle>
-            <DialogDescription>
-              El producto y sus variantes han sido creados exitosamente.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              onClick={() => router.push("/productos")}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Continuar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
