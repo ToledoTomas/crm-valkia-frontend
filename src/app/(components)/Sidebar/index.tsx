@@ -6,9 +6,7 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Package,
-  Warehouse,
   Users,
-  BarChart3,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -26,9 +24,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Ventas", path: "/ventas", icon: ShoppingCart },
     { name: "Productos", path: "/productos", icon: Package },
-    { name: "Stock", path: "/stock", icon: Warehouse },
     { name: "Clientes", path: "/clientes", icon: Users },
-    { name: "Reportes", path: "/reportes", icon: BarChart3 },
   ];
 
   const handleLogout = () => {
@@ -41,7 +37,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   return (
     <div
       className={cn(
-        "h-full w-64 bg-[#fbfbf2] text-foreground flex flex-col p-4 shadow-lg border-r",
+        "h-full w-64 border-r border-border bg-card text-foreground flex flex-col p-4 shadow-sm",
         className
       )}
     >
@@ -57,10 +53,10 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
               <Link
                 href={item.path}
                 onClick={onLinkClick}
-                className={`flex items-center gap-3 p-3 rounded-lg transition-colors duration-200 cursor-pointer ${
+                className={`flex items-center gap-3 p-3 rounded-xl transition-colors duration-200 cursor-pointer ${
                   isActive
-                    ? "bg-[#e5e5d0] text-black font-medium"
-                    : "hover:bg-[#f0f0e0] text-gray-600 hover:text-black"
+                    ? "bg-primary text-primary-foreground font-medium"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -74,10 +70,10 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         <Link
           href="/configuracion"
           onClick={onLinkClick}
-          className={`flex items-center gap-3 p-3 rounded-lg transition-colors cursor-pointer ${
+          className={`flex items-center gap-3 p-3 rounded-xl transition-colors cursor-pointer ${
             pathname.startsWith("/configuracion")
-              ? "bg-[#e5e5d0] text-black font-medium"
-              : "hover:bg-[#f0f0e0] text-gray-600 hover:text-black"
+              ? "bg-primary text-primary-foreground font-medium"
+              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           }`}
         >
           <Settings className="h-5 w-5" />
@@ -86,7 +82,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         <Link
           href="/login"
           onClick={handleLogout}
-          className="flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors cursor-pointer"
+          className="flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors cursor-pointer"
         >
           <LogOut className="h-5 w-5" />
           <span>Cerrar Sesión</span>
