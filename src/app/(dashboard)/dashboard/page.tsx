@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import {
   DollarSign,
@@ -17,10 +17,10 @@ import { getKPIs } from "./api";
 import { DashboardKPIs } from "@/types/dashboard";
 
 export default function DashboardPage() {
-  const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [kpis, setKpis] = React.useState<DashboardKPIs | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
