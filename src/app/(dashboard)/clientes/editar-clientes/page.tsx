@@ -1,7 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import { ArrowLeft, Loader2, Save } from "lucide-react";
+
 import { getCustomerById, updateCustomer } from "../api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +13,10 @@ import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
-import Link from "next/link";
 
 const PageEditarCliente = () => {
   const router = useRouter();
@@ -24,7 +26,6 @@ const PageEditarCliente = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -33,17 +34,19 @@ const PageEditarCliente = () => {
 
   useEffect(() => {
     if (id) {
-      loadClient(id);
-    } else {
-      setError("No se proporcionó un ID de cliente válido.");
-      setLoading(false);
+      void loadClient(id);
+      return;
     }
+
+    setError("No se proporciono un ID de cliente valido.");
+    setLoading(false);
   }, [id]);
 
   const loadClient = async (clientId: string) => {
     try {
       setLoading(true);
       const data = await getCustomerById(Number(clientId));
+
       if (data) {
         setFormData({
           name: data.name || "",
@@ -53,9 +56,7 @@ const PageEditarCliente = () => {
       }
     } catch (err: unknown) {
       console.error(err);
-      setError(
-        (err as Error).message || "Error al cargar los datos del cliente."
-      );
+      setError((err as Error).message || "Error al cargar los datos del cliente.");
     } finally {
       setLoading(false);
     }
@@ -66,15 +67,19 @@ const PageEditarCliente = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!id) return;
+
+    if (!id) {
+      return;
+    }
 
     try {
       setSaving(true);
       await updateCustomer(Number(id), formData);
-      router.push("/clientes"); // Redirect back to list
-      router.refresh(); // Refresh data
+      toast.success("Cliente actualizado");
+      router.push("/clientes");
+      router.refresh();
     } catch (err) {
       console.error(err);
       setError("Error al actualizar el cliente.");
@@ -93,12 +98,11 @@ const PageEditarCliente = () => {
 
   if (error) {
     return (
-      <div className="flex bg-card flex-col items-center justify-center h-screen gap-4">
-        <p className="text-destructive font-medium">{error}</p>
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-card">
+        <p className="font-medium text-destructive">{error}</p>
         <Link href="/clientes">
           <Button variant="outline">
-            {" "}
-            <ArrowLeft className="mr-2 h-4 w-4" /> Volver{" "}
+            <ArrowLeft className="mr-2 h-4 w-4" /> Volver
           </Button>
         </Link>
       </div>
@@ -106,34 +110,37 @@ const PageEditarCliente = () => {
   }
 
   return (
-    <div className="container max-w-2xl py-10 mx-auto">
-      <div className="mb-6">
-        <Link
-          href="/clientes"
-          className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-1 mb-2 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" /> Volver a clientes
-        </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Editar Cliente
-        </h1>
-        <p className="text-muted-foreground">
-          Actualiza la información del cliente.
-        </p>
-      </div>
+    <div className="mx-auto max-w-2xl space-y-5">
+      <header className="rounded-2xl border border-border bg-card px-4 py-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <Button asChild variant="outline" size="icon" className="h-10 w-10 rounded-xl">
+            <Link href="/clientes" aria-label="Volver a clientes">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              Editar cliente
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Actualiza los datos basicos de contacto.
+            </p>
+          </div>
+        </div>
+      </header>
 
-      <Card>
+      <Card className="rounded-2xl border-border shadow-sm">
         <form onSubmit={handleSubmit}>
-          <CardHeader>
-            <CardTitle>Información del Cliente</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Datos del cliente</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre Completo</Label>
+              <Label htmlFor="name">Nombre</Label>
               <Input
                 id="name"
                 name="name"
-                placeholder="Juan Perez"
+                placeholder="Nombre del cliente"
                 value={formData.name}
                 onChange={handleChange}
                 required
@@ -146,7 +153,7 @@ const PageEditarCliente = () => {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="juan@ejemplo.com"
+                placeholder="cliente@ejemplo.com"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -154,11 +161,11 @@ const PageEditarCliente = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Teléfono</Label>
+              <Label htmlFor="phone">Telefono</Label>
               <Input
                 id="phone"
                 name="phone"
-                placeholder="+54 9 11 ..."
+                placeholder="Telefono de contacto"
                 value={formData.phone}
                 onChange={handleChange}
                 required
@@ -174,7 +181,7 @@ const PageEditarCliente = () => {
             <Button
               type="submit"
               disabled={saving}
-              className="bg-[#e5e5d0] text-black hover:bg-[#d8d8b9]"
+              className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {saving ? (
                 <>
@@ -182,7 +189,7 @@ const PageEditarCliente = () => {
                 </>
               ) : (
                 <>
-                  <Save className="mr-2 h-4 w-4" /> Guardar Cambios
+                  <Save className="mr-2 h-4 w-4" /> Guardar cambios
                 </>
               )}
             </Button>
