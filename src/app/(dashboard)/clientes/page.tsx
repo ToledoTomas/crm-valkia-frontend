@@ -151,7 +151,12 @@ export default function ClientesPage() {
               ) : (
                 customers.map((customer) => (
                   <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span>{customer.name}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="space-y-1 text-sm text-muted-foreground">
                         {customer.phone ? (
