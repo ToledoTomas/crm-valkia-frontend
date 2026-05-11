@@ -41,7 +41,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         className
       )}
     >
-      <h1 className="text-2xl font-semibold mb-8 text-center text-black">
+      <h1 className="text-2xl font-semibold mb-8 text-center text-foreground">
         Valkia
       </h1>
       <ul className="flex flex-col space-y-2">
@@ -66,7 +66,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
           );
         })}
       </ul>
-      <div className="mt-auto pt-4 border-t border-gray-200 space-y-2">
+      <div className="mt-auto pt-4 border-t border-border space-y-2">
         <Link
           href="/configuracion"
           onClick={onLinkClick}
