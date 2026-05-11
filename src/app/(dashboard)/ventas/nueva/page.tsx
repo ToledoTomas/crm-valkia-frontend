@@ -3,14 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Plus,
-  Trash2,
   ArrowLeft,
-  ShoppingCart,
-  Search,
-  User,
   Package,
-  CheckCircle,
+  Plus,
+  Search,
+  ShoppingCart,
+  Trash2,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -19,14 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Command,
   CommandEmpty,
@@ -70,7 +61,6 @@ interface CartItem {
 export default function NuevaVentaPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
 
   // Cliente
   const [selectedCustomer, setSelectedCustomer] = useState<EnrichedCustomer | null>(null);
@@ -189,14 +179,6 @@ export default function NuevaVentaPage() {
     return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   };
 
-  const calculateCost = () => {
-    return cartItems.reduce((sum, item) => sum + item.cost * item.quantity, 0);
-  };
-
-  const calculateProfit = () => {
-    return calculateTotal() - calculateCost();
-  };
-
   const handleSubmit = async () => {
     if (cartItems.length === 0) {
       toast.error("Agrega al menos un producto al carrito");
@@ -213,8 +195,9 @@ export default function NuevaVentaPage() {
           quantity: item.quantity,
         })),
       });
-      setShowSuccess(true);
-    } catch (error) {
+      toast.success("Venta registrada");
+      router.push("/ventas");
+    } catch {
       toast.error("Error al crear la venta");
       setIsLoading(false);
     }
@@ -229,25 +212,31 @@ export default function NuevaVentaPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/ventas">
-          <Button variant="outline" size="icon">
-            <ArrowLeft className="h-4 w-4" />
+      <header className="rounded-2xl border border-border bg-card px-4 py-4 shadow-sm md:px-5">
+        <div className="flex items-center gap-3">
+          <Button asChild variant="outline" size="icon" className="h-10 w-10 rounded-xl">
+            <Link href="/ventas" aria-label="Volver a ventas">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
           </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold">Nueva Venta</h1>
-          <p className="text-gray-500">Crea una nueva venta</p>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+              Nueva venta
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Selecciona productos, cantidades y confirma el total.
+            </p>
+          </div>
         </div>
-      </div>
+      </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Panel izquierdo: Cliente y Productos */}
         <div className="space-y-6">
           {/* Selección de Cliente */}
-          <Card>
+          <Card className="rounded-2xl border-border shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <User className="h-5 w-5" />
                 Cliente (Opcional)
               </CardTitle>
@@ -328,9 +317,9 @@ export default function NuevaVentaPage() {
           </Card>
 
           {/* Agregar Productos */}
-          <Card>
+          <Card className="rounded-2xl border-border shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Package className="h-5 w-5" />
                 Agregar Productos
               </CardTitle>
@@ -423,13 +412,8 @@ export default function NuevaVentaPage() {
                   </div>
 
                   {selectedVariant && (
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500">
-                        Precio: {formatCurrency(selectedVariant.price)}
-                      </span>
-                      <span className="text-green-600">
-                        Ganancia: {formatCurrency(selectedVariant.ganancia)} por unidad
-                      </span>
+                    <div className="text-sm text-muted-foreground">
+                      Precio: {formatCurrency(selectedVariant.price)}
                     </div>
                   )}
 
@@ -449,9 +433,9 @@ export default function NuevaVentaPage() {
 
         {/* Panel derecho: Carrito y Resumen */}
         <div className="space-y-6">
-          <Card>
+          <Card className="rounded-2xl border-border shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <ShoppingCart className="h-5 w-5" />
                 Carrito
               </CardTitle>
@@ -501,22 +485,10 @@ export default function NuevaVentaPage() {
                     </TableBody>
                   </Table>
 
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Subtotal:</span>
+                  <div className="mt-6 rounded-2xl border border-border bg-background p-4">
+                    <div className="flex items-center justify-between text-lg font-semibold">
+                      <span>Total</span>
                       <span>{formatCurrency(calculateTotal())}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Costo:</span>
-                      <span>{formatCurrency(calculateCost())}</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-bold pt-2 border-t">
-                      <span>Total:</span>
-                      <span>{formatCurrency(calculateTotal())}</span>
-                    </div>
-                    <div className="flex justify-between text-green-600">
-                      <span>Ganancia:</span>
-                      <span>{formatCurrency(calculateProfit())}</span>
                     </div>
                   </div>
 
@@ -534,27 +506,6 @@ export default function NuevaVentaPage() {
         </div>
       </div>
 
-      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-6 w-6 text-green-500" />
-              Venta Completada
-            </DialogTitle>
-            <DialogDescription>
-              La venta se ha registrado exitosamente. El stock ha sido actualizado.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              onClick={() => router.push("/ventas")}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Ver Ventas
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
