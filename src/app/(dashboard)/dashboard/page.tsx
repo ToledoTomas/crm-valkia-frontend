@@ -165,7 +165,7 @@ export default function DashboardPage() {
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value) => formatCurrency(Number(value ?? 0))}
                   labelFormatter={(label) => formatMonth(label as string)}
                 />
                 <Bar dataKey="total" fill="#e5e5d0" />
@@ -193,7 +193,7 @@ export default function DashboardPage() {
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value) => formatCurrency(Number(value ?? 0))}
                   labelFormatter={(label) => formatMonth(label as string)}
                 />
                 <Area
@@ -269,7 +269,7 @@ export default function DashboardPage() {
 interface KPICardProps {
   title: string;
   value: string;
-  icon: React.ReactNode;
+  icon: React.ReactElement<{ className?: string }>;
   subtitle?: string;
   trend?: string;
   trendUp?: boolean;
@@ -290,7 +290,7 @@ function KPICard({
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className={`p-2 rounded-lg ${alert ? "bg-red-100" : "bg-[#e5e5d0]"}`}>
-            {React.cloneElement(icon as React.ReactElement, {
+            {React.cloneElement(icon, {
               className: alert ? "text-red-600" : "text-black",
             })}
           </div>

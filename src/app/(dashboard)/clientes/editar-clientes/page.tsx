@@ -26,7 +26,7 @@ const PageEditarCliente = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    fullname: "",
+    name: "",
     email: "",
     phone: "",
   });
@@ -43,10 +43,10 @@ const PageEditarCliente = () => {
   const loadClient = async (clientId: string) => {
     try {
       setLoading(true);
-      const data = await getClientById(clientId);
+      const data = await getCustomerById(Number(clientId));
       if (data) {
         setFormData({
-          fullname: data.fullname || "",
+          name: data.name || "",
           email: data.email || "",
           phone: data.phone || "",
         });
@@ -72,7 +72,7 @@ const PageEditarCliente = () => {
 
     try {
       setSaving(true);
-      await updateClient(id, formData);
+      await updateCustomer(Number(id), formData);
       router.push("/clientes"); // Redirect back to list
       router.refresh(); // Refresh data
     } catch (err) {
@@ -129,12 +129,12 @@ const PageEditarCliente = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullname">Nombre Completo</Label>
+              <Label htmlFor="name">Nombre Completo</Label>
               <Input
-                id="fullname"
-                name="fullname"
+                id="name"
+                name="name"
                 placeholder="Juan Perez"
-                value={formData.fullname}
+                value={formData.name}
                 onChange={handleChange}
                 required
               />

@@ -1,4 +1,13 @@
-export const login = async (user: any) => {
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+type LoginErrorResponse = {
+  message?: string | string[];
+};
+
+export const login = async (user: LoginCredentials) => {
   try {
     const response = await fetch("http://localhost:3001/auth/login", {
       method: "POST",
@@ -9,7 +18,7 @@ export const login = async (user: any) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData: LoginErrorResponse = await response.json().catch(() => ({}));
       if (errorData.message) {
         const message = Array.isArray(errorData.message)
           ? errorData.message.join(", ")
