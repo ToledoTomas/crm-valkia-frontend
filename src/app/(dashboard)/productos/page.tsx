@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, Boxes, Layers3, Plus, RefreshCw, Siren } from "lucide-react";
+import { AlertCircle, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,60 +17,31 @@ import {
 import type { EnrichedProduct } from "@/types/product";
 
 import { ProductControlBar } from "./_components/ProductControlBar";
-import { ProductDetailPanel } from "./_components/ProductDetailPanel";
 import { ProductMasterTable } from "./_components/ProductMasterTable";
 import {
   filterProducts,
-  getCatalogSummary,
+  getCatalogStockSummary,
   getProductCategories,
-  sortProductsForAudit,
-  type ProductAuditFilters,
+  sortProductsForStock,
+  type ProductStockFilters,
 } from "./_lib/product-audit";
 import { deleteProduct, getProducts, searchProducts } from "./api";
 
-const initialFilters: ProductAuditFilters = {
+const initialFilters: ProductStockFilters = {
   category: "all",
-  state: "all",
   stock: "all",
-  margin: "all",
 };
 
-function hasActiveFilters(filters: ProductAuditFilters) {
-  return (
-    filters.category !== "all" ||
-    filters.state !== "all" ||
-    filters.stock !== "all" ||
-    filters.margin !== "all"
-  );
-}
-
-function SummaryCard({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Boxes;
-  label: string;
-  value: number;
-}) {
-  return (
-    <div className="rounded-3xl border border-[#eadfce] bg-white/70 px-4 py-3 shadow-[0_14px_40px_rgba(88,60,32,0.05)]">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#a7835d]">
-        <Icon className="h-4 w-4" aria-hidden="true" />
-        {label}
-      </div>
-      <p className="mt-2 text-2xl font-semibold text-[#3f2f22]">{value}</p>
-    </div>
-  );
+function hasActiveFilters(filters: ProductStockFilters) {
+  return filters.category !== "all" || filters.stock !== "all";
 }
 
 export default function ProductosPage() {
   const [products, setProducts] = useState<EnrichedProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<ProductAuditFilters>(initialFilters);
+  const [filters, setFilters] = useState<ProductStockFilters>(initialFilters);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
-  const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<EnrichedProduct | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -102,41 +73,38 @@ export default function ProductosPage() {
     }
   }, []);
 
-  const handleSearch = useCallback(
-    async (term: string) => {
-      const requestId = requestIdRef.current + 1;
-      requestIdRef.current = requestId;
+  const handleSearch = useCallback(async (term: string) => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
 
-      try {
-        setIsLoading(true);
-        setLoadError(null);
+    try {
+      setIsLoading(true);
+      setLoadError(null);
 
-        if (term.trim() === "") {
-          const result = await getProducts();
-          if (requestIdRef.current !== requestId) return;
-          setProducts(
-            result.data.filter((product) => !deletedProductIdsRef.current.has(product.id))
-          );
-        } else {
-          const result = await searchProducts(term);
-          if (requestIdRef.current !== requestId) return;
-          setProducts(
-            result.filter((product) => !deletedProductIdsRef.current.has(product.id))
-          );
-        }
-      } catch {
+      if (term.trim() === "") {
+        const result = await getProducts();
         if (requestIdRef.current !== requestId) return;
-        const message = "No se pudo buscar productos.";
-        setLoadError(message);
-        toast.error(message);
-      } finally {
-        if (requestIdRef.current === requestId) {
-          setIsLoading(false);
-        }
+        setProducts(
+          result.data.filter((product) => !deletedProductIdsRef.current.has(product.id))
+        );
+      } else {
+        const result = await searchProducts(term);
+        if (requestIdRef.current !== requestId) return;
+        setProducts(
+          result.filter((product) => !deletedProductIdsRef.current.has(product.id))
+        );
       }
-    },
-    []
-  );
+    } catch {
+      if (requestIdRef.current !== requestId) return;
+      const message = "No se pudo buscar productos.";
+      setLoadError(message);
+      toast.error(message);
+    } finally {
+      if (requestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
+    }
+  }, []);
 
   const handleDelete = async () => {
     if (!productToDelete) return;
@@ -183,24 +151,15 @@ export default function ProductosPage() {
   const categories = useMemo(() => getProductCategories(products), [products]);
 
   const visibleProducts = useMemo(
-    () => sortProductsForAudit(filterProducts(products, filters)),
+    () => sortProductsForStock(filterProducts(products, filters)),
     [filters, products]
   );
 
-  const selectedProduct = useMemo(
-    () =>
-      visibleProducts.find((product) => product.id === selectedProductId) ??
-      visibleProducts[0] ??
-      null,
-    [selectedProductId, visibleProducts]
-  );
-
-  const summary = useMemo(() => getCatalogSummary(visibleProducts), [visibleProducts]);
+  const summary = useMemo(() => getCatalogStockSummary(visibleProducts), [visibleProducts]);
   const hasSearchOrFilters = searchTerm.trim() !== "" || hasActiveFilters(filters);
 
   const handleSelectProduct = (product: EnrichedProduct) => {
     setSelectedProductId(product.id);
-    setIsMobileDetailOpen(true);
   };
 
   const retryLastRequest = () => {
@@ -215,40 +174,29 @@ export default function ProductosPage() {
 
   return (
     <div className="min-w-0 space-y-6">
-      <header className="overflow-hidden rounded-[2.5rem] border border-[#eadfce] bg-[#fffaf2] shadow-[0_24px_80px_rgba(88,60,32,0.1)]">
-        <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:p-7">
+      <header className="rounded-2xl border border-border bg-card px-4 py-4 shadow-sm md:px-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b28b61]">
-              Atelier operativo
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+              Productos
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Control de stock simple para el catalogo actual.
             </p>
-            <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <h1 className="text-4xl font-semibold tracking-[-0.04em] text-[#2f241b] md:text-5xl">
-                  Productos
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#7f654c]">
-                  Controla catalogo, stock, variantes y margenes desde una vista de
-                  lectura rapida.
-                </p>
-              </div>
-              <Button
-                asChild
-                className="w-full rounded-2xl bg-[#6f5438] text-white hover:bg-[#5e422b] sm:w-auto"
-              >
-                <Link href="/productos/agregar-productos">
-                  <Plus className="h-4 w-4" aria-hidden="true" />
-                  Nuevo producto
-                </Link>
-              </Button>
-            </div>
+            <p className="mt-2 text-xs font-medium text-muted-foreground">
+              {summary.totalProducts} productos cargados - {summary.attentionCount} requieren
+              atencion
+            </p>
           </div>
-
-          <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4 lg:w-[520px]">
-            <SummaryCard icon={Boxes} label="Productos" value={summary.totalProducts} />
-            <SummaryCard icon={Layers3} label="Variantes" value={summary.totalVariants} />
-            <SummaryCard icon={Siren} label="Atencion" value={summary.attentionCount} />
-            <SummaryCard icon={AlertCircle} label="Stock bajo" value={summary.lowStockCount} />
-          </div>
+          <Button
+            asChild
+            className="h-10 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Link href="/productos/agregar-productos">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Nuevo producto
+            </Link>
+          </Button>
         </div>
       </header>
 
@@ -261,40 +209,26 @@ export default function ProductosPage() {
       />
 
       {loadError ? (
-        <div className="flex flex-col gap-3 rounded-3xl border border-[#e8b9a7] bg-[#fff1ea] px-4 py-3 text-sm text-[#842f16] shadow-[0_14px_40px_rgba(132,47,22,0.08)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{loadError}</span>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-2xl border-[#e8b9a7] bg-white/70 text-[#842f16] hover:bg-[#ffe6dc]"
-            onClick={retryLastRequest}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={retryLastRequest}>
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Reintentar
           </Button>
         </div>
       ) : null}
 
-      <main className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-start">
-        <section className="min-w-0 flex-1">
-          <ProductMasterTable
-            products={visibleProducts}
-            selectedProductId={selectedProduct?.id ?? null}
-            isLoading={isLoading}
-            hasSearchOrFilters={hasSearchOrFilters}
-            onSelectProduct={handleSelectProduct}
-            onDeleteProduct={setProductToDelete}
-          />
-        </section>
-
-        <ProductDetailPanel
-          product={selectedProduct}
-          isMobileOpen={isMobileDetailOpen}
-          onMobileOpenChange={setIsMobileDetailOpen}
+      <main className="min-w-0">
+        <ProductMasterTable
+          products={visibleProducts}
+          selectedProductId={selectedProductId}
+          isLoading={isLoading}
+          hasSearchOrFilters={hasSearchOrFilters}
+          onSelectProduct={handleSelectProduct}
+          onDeleteProduct={setProductToDelete}
         />
       </main>
 
@@ -306,9 +240,9 @@ export default function ProductosPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>¿Eliminar producto?</DialogTitle>
+            <DialogTitle>Eliminar producto?</DialogTitle>
             <DialogDescription>
-              Estás por eliminar &quot;{productToDelete?.name}&quot;. Esta acción no se puede
+              Estas por eliminar &quot;{productToDelete?.name}&quot;. Esta accion no se puede
               deshacer.
             </DialogDescription>
           </DialogHeader>
