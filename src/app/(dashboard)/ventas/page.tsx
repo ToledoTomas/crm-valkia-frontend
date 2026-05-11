@@ -1,21 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Eye, Trash2, User, Calendar } from "lucide-react";
+import { Calendar, Eye, Plus, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -24,9 +15,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-import { getInvoices, deleteInvoice } from "./api";
 import { EnrichedInvoice } from "@/types/invoice";
+
+import { deleteInvoice, getInvoices } from "./api";
 
 export default function VentasPage() {
   const [invoices, setInvoices] = useState<EnrichedInvoice[]>([]);
@@ -39,7 +40,7 @@ export default function VentasPage() {
       setIsLoading(true);
       const result = await getInvoices();
       setInvoices(result.data);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar ventas");
     } finally {
       setIsLoading(false);
@@ -55,10 +56,10 @@ export default function VentasPage() {
 
     try {
       await deleteInvoice(invoiceToDelete.id);
-      setInvoices(invoices.filter((i) => i.id !== invoiceToDelete.id));
+      setInvoices(invoices.filter((invoice) => invoice.id !== invoiceToDelete.id));
       toast.success("Venta anulada correctamente. El stock ha sido revertido.");
       setInvoiceToDelete(null);
-    } catch (error) {
+    } catch {
       toast.error("Error al anular la venta");
     }
   };
@@ -82,43 +83,51 @@ export default function VentasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold">Ventas</h1>
-          <p className="text-gray-500">Historial de ventas y transacciones</p>
-        </div>
-        <Link href="/ventas/nueva">
-          <Button className="bg-[#e5e5d0] hover:bg-[#d8d8b9] text-black">
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva Venta
+      <header className="rounded-2xl border border-border bg-card px-4 py-4 shadow-sm md:px-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+              Ventas
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Historial simple de ventas registradas.
+            </p>
+          </div>
+          <Button
+            asChild
+            className="h-10 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Link href="/ventas/nueva">
+              <Plus className="h-4 w-4" />
+              Nueva venta
+            </Link>
           </Button>
-        </Link>
-      </div>
+        </div>
+      </header>
 
-      <div className="bg-white rounded-lg border border-gray-200">
+      <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
         {isLoading ? (
-          <div className="p-4 space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
+          <div className="space-y-3 p-4">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton key={index} className="h-10 w-full" />
             ))}
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>N° Venta</TableHead>
+                <TableHead>Venta</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Fecha</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Total</TableHead>
-                <TableHead>Ganancia</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {invoices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={6} className="py-8 text-center text-gray-500">
                     No hay ventas registradas.
                   </TableCell>
                 </TableRow>
@@ -132,7 +141,7 @@ export default function VentasPage() {
                         {invoice.customer ? (
                           <span>{invoice.customer.name}</span>
                         ) : (
-                          <span className="text-gray-400 italic">Sin cliente</span>
+                          <span className="italic text-gray-400">Sin cliente</span>
                         )}
                       </div>
                     </TableCell>
@@ -145,9 +154,6 @@ export default function VentasPage() {
                     <TableCell>{invoice.items?.length || 0} items</TableCell>
                     <TableCell className="font-medium">
                       {formatCurrency(invoice.total)}
-                    </TableCell>
-                    <TableCell className="text-green-600">
-                      {formatCurrency(invoice.totalProfit)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -175,13 +181,13 @@ export default function VentasPage() {
         )}
       </div>
 
-      {/* Dialog de confirmación para anular */}
       <Dialog open={!!invoiceToDelete} onOpenChange={() => setInvoiceToDelete(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>¿Anular venta?</DialogTitle>
+            <DialogTitle>Anular venta?</DialogTitle>
             <DialogDescription>
-              Estás a punto de anular la venta #{invoiceToDelete?.id}. Esto revertirá el stock de los productos vendidos. Esta acción no se puede deshacer.
+              Estas por anular la venta #{invoiceToDelete?.id}. Esto revertira el stock
+              de los productos vendidos.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -195,7 +201,6 @@ export default function VentasPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de detalle de venta */}
       <Dialog open={!!selectedInvoice} onOpenChange={() => setSelectedInvoice(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -209,25 +214,11 @@ export default function VentasPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-500">Total</p>
-                <p className="text-xl font-bold">
-                  {selectedInvoice && formatCurrency(selectedInvoice.total)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Costo</p>
-                <p className="text-xl">
-                  {selectedInvoice && formatCurrency(selectedInvoice.totalCost)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Ganancia</p>
-                <p className="text-xl text-green-600">
-                  {selectedInvoice && formatCurrency(selectedInvoice.totalProfit)}
-                </p>
-              </div>
+            <div className="rounded-2xl border border-border bg-background p-4">
+              <p className="text-sm text-muted-foreground">Total</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">
+                {selectedInvoice && formatCurrency(selectedInvoice.total)}
+              </p>
             </div>
 
             <Table>
